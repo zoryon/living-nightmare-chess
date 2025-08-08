@@ -57,12 +57,27 @@ export async function setRefreshTokenCookie(userId: number, deviceId: string) {
     });
 
     // Set cookie
-    (await cookies()).set("refreshToken", token, {
+    (await cookies()).set("refresh_token", token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
         path: "/",
         expires: expiresAt
+    });
+
+    return token;
+}
+
+export async function setAccessTokenCookie(userId: number) {
+    const token = signAccessToken({ userId });
+
+    // Set cookie
+    (await cookies()).set("access_token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        path: "/",
+        maxAge: ACCESS_EXPIRES_IN
     });
 
     return token;

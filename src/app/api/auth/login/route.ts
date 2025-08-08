@@ -1,7 +1,7 @@
 import bcrypt from "bcrypt";
 
 import { prisma } from "@/lib/prisma";
-import { setRefreshTokenCookie, signAccessToken } from "@/lib/jwt";
+import { setAccessTokenCookie, setRefreshTokenCookie } from "@/lib/jwt";
 
 export async function POST(req: Request) {
     const { email, password, deviceId } = await req.json();
@@ -16,10 +16,10 @@ export async function POST(req: Request) {
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) return new Response(JSON.stringify({ error: "Invalid credentials" }), { status: 401 });
 
-    const accessToken = signAccessToken({ userId: user.id });
     await setRefreshTokenCookie(user.id, deviceId);
+    await setAccessTokenCookie(user.id);
 
-    return new Response(JSON.stringify({ user, accessToken }), {
+    return new Response(JSON.stringify({ user }), {
         status: 200,
         headers: { "Content-Type": "application/json" }
     });

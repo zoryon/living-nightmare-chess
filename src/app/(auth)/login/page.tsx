@@ -41,9 +41,6 @@ export default function LoginPage() {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Login failed");
 
-            // Save token for WS usage
-            localStorage.setItem("access_token", data.accessToken);
-            
             router.push("/");
         } catch (err: any) {
             setError(err.message);

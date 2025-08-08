@@ -40,9 +40,6 @@ export default function RegisterPage() {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Registration failed");
 
-            // Optionally log in automatically after registering
-            localStorage.setItem("access_token", data.accessToken);
-            
             router.push("/");
         } catch (err: any) {
             setError(err.message);

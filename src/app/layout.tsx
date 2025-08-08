@@ -5,6 +5,9 @@ import { Geist, Geist_Mono } from "next/font/google";
 // Styles
 import "./globals.css";
 
+// Custom
+import Providers from "@/components/Providers";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -20,17 +23,13 @@ export const metadata: Metadata = {
   description: "Living Nightmares Chess Official Website",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased dark`}
-      >
-        {children}
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased dark`}>
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   );

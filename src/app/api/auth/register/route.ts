@@ -1,7 +1,7 @@
 import bcrypt from "bcrypt";
 
 import { prisma } from "@/lib/prisma";
-import { setRefreshTokenCookie, signAccessToken } from "@/lib/jwt";
+import { setAccessTokenCookie, setRefreshTokenCookie } from "@/lib/jwt";
 
 const SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS ?? 12);
 
@@ -32,10 +32,11 @@ export async function POST(req: Request) {
         select: { id: true, email: true, username: true, createdAt: true }
     });
 
-    const accessToken = signAccessToken({ sub: user.id });
+    // Automatically log-in
     await setRefreshTokenCookie(user.id, deviceId || "unknown");
+    await setAccessTokenCookie(user.id);
 
-    return new Response(JSON.stringify({ user, accessToken }), {
+    return new Response(JSON.stringify({ user }), {
         status: 201,
         headers: { "Content-Type": "application/json" }
     });
