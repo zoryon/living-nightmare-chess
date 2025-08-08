@@ -1,0 +1,74 @@
+import jwt from "jsonwebtoken";
+import { cookies } from "next/headers";
+
+import { prisma } from "@/lib/prisma";
+
+const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET!;
+const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET!;
+const ACCESS_EXPIRES_IN = Number(process.env.ACCESS_TOKEN_EXPIRES_IN ?? 900); // 15 min
+const REFRESH_EXPIRES_IN_DAYS = Number(process.env.REFRESH_TOKEN_EXPIRES_IN_DAYS ?? 30); // 30 days
+
+if (!ACCESS_SECRET || !REFRESH_SECRET) {
+    throw new Error("Missing JWT secrets in env");
+}
+
+export function signAccessToken(payload: object) {
+    return jwt.sign(payload, ACCESS_SECRET, { expiresIn: `${ACCESS_EXPIRES_IN}s` });
+}
+
+export function verifyAccessToken(token: string) {
+    try {
+        return jwt.verify(token, ACCESS_SECRET) as any;
+    } catch {
+        return null;
+    }
+}
+
+export function signRefreshToken(payload: object) {
+    return jwt.sign(payload, REFRESH_SECRET, { expiresIn: `${REFRESH_EXPIRES_IN_DAYS}d` });
+}
+
+export function verifyRefreshToken(token: string) {
+    try {
+        return jwt.verify(token, REFRESH_SECRET) as any;
+    } catch {
+        return null;
+    }
+}
+
+export async function setRefreshTokenCookie(userId: number, deviceId: string) {
+    const token = signRefreshToken({ userId });
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + REFRESH_EXPIRES_IN_DAYS);
+
+    // Remove old token for the same device
+    await prisma.refresh_token.deleteMany({
+        where: { userId, deviceId }
+    });
+
+    // Store in DB
+    await prisma.refresh_token.create({
+        data: {
+            token,
+            deviceId,
+            userId,
+            expiresAt
+        }
+    });
+
+    // Set cookie
+    (await cookies()).set("refreshToken", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        path: "/",
+        expires: expiresAt
+    });
+
+    return token;
+}
+
+export async function clearRefreshTokenCookie(token: string) {
+    await prisma.refresh_token.deleteMany({ where: { token } });
+    (await cookies()).set("refreshToken", "", { expires: new Date(0), path: "/" });
+}

@@ -1,0 +1,115 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model match {
+  id           Int            @id @default(autoincrement())
+  status       match_status
+  createdAt    DateTime?      @default(now()) @db.DateTime(0)
+  winnerId     Int?
+  user         user?          @relation(fields: [winnerId], references: [id], onUpdate: NoAction, map: "match_ibfk_1")
+  match_move   match_move[]
+  match_piece  match_piece[]
+  match_player match_player[]
+
+  @@index([winnerId], map: "match_ibfk_1")
+}
+
+model match_move {
+  id                 Int       @id @default(autoincrement())
+  matchId            Int
+  playerId           Int?
+  moveNumber         Int
+  fromX              Int       @db.TinyInt
+  fromY              Int       @db.TinyInt
+  toX                Int       @db.TinyInt
+  toY                Int       @db.TinyInt
+  pieceType          String    @db.VarChar(50)
+  capturedPieceType  String?   @db.VarChar(50)
+  specialAbilityUsed Int?      @default(0) @db.TinyInt
+  createdAt          DateTime? @default(now()) @db.DateTime(0)
+  match              match     @relation(fields: [matchId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "match_move_ibfk_1")
+  user               user?     @relation(fields: [playerId], references: [id], onUpdate: NoAction, map: "match_move_ibfk_2")
+
+  @@index([matchId], map: "matchId")
+  @@index([playerId], map: "playerId")
+}
+
+model match_piece {
+  id          Int              @id @default(autoincrement())
+  matchId     Int
+  playerId    Int?
+  type        match_piece_type
+  posX        Int?             @db.TinyInt
+  posY        Int?             @db.TinyInt
+  usedAbility Int?             @default(0) @db.TinyInt
+  captured    Int?             @default(0) @db.TinyInt
+  match       match            @relation(fields: [matchId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "match_piece_ibfk_1")
+  user        user?            @relation(fields: [playerId], references: [id], onUpdate: NoAction, map: "match_piece_ibfk_2")
+
+  @@index([matchId], map: "matchId")
+  @@index([playerId], map: "playerId")
+}
+
+model match_player {
+  id      Int                @id @default(autoincrement())
+  userId  Int?
+  matchId Int
+  color   match_player_color
+  user    user?              @relation(fields: [userId], references: [id], onUpdate: NoAction, map: "match_player_ibfk_1")
+  match   match              @relation(fields: [matchId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "match_player_ibfk_2")
+
+  @@index([matchId], map: "matchId")
+  @@index([userId], map: "userId")
+}
+
+model refresh_token {
+  id        Int       @id @default(autoincrement())
+  token     String?   @unique(map: "token") @db.VarChar(255)
+  createdAt DateTime? @default(now()) @db.DateTime(0)
+  expiresAt DateTime? @db.DateTime(0)
+  userId    Int?
+  deviceId  String?   @db.VarChar(255)
+  user      user?     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "refresh_token_ibfk_1")
+
+  @@index([userId], map: "userId")
+}
+
+model user {
+  id            Int             @id @default(autoincrement())
+  email         String?         @unique(map: "email") @db.VarChar(255)
+  username      String          @db.VarChar(25)
+  passwordHash  String          @db.Text
+  createdAt     DateTime?       @default(now()) @db.DateTime(0)
+  updatedAt     DateTime?       @default(now()) @db.DateTime(0)
+  match         match[]
+  match_move    match_move[]
+  match_piece   match_piece[]
+  match_player  match_player[]
+  refresh_token refresh_token[]
+}
+
+enum match_status {
+  ONGOING
+  FINISHED
+}
+
+enum match_piece_type {
+  SLEEPLESS_EYE
+  PHANTOM_MATRIARCH
+  SHADOW_HUNTER
+  DOPPELGANGER
+  PHOBIC_LEAPER
+  PSYCHIC_LARVA
+}
+
+enum match_player_color {
+  WHITE
+  BLACK
+}
