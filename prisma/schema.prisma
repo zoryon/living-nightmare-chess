@@ -71,14 +71,19 @@ model match_player {
 
 model refresh_token {
   id        Int       @id @default(autoincrement())
+  userId    Int
+  deviceId  Int
   token     String?   @unique(map: "token") @db.VarChar(255)
+  ipAddress String?   @db.VarChar(45)
+  nation    String?   @db.VarChar(100)
+  region    String?   @db.VarChar(100)
   createdAt DateTime? @default(now()) @db.DateTime(0)
   expiresAt DateTime? @db.DateTime(0)
-  userId    Int?
-  deviceId  String?   @db.VarChar(255)
-  user      user?     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "refresh_token_ibfk_1")
+  user      user      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "refresh_token_ibfk_1")
+  device    device    @relation(fields: [deviceId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "refresh_token_ibfk_2")
 
   @@index([userId], map: "userId")
+  @@index([deviceId], map: "deviceId")
 }
 
 model user {
@@ -88,11 +93,25 @@ model user {
   passwordHash  String          @db.Text
   createdAt     DateTime?       @default(now()) @db.DateTime(0)
   updatedAt     DateTime?       @default(now()) @db.DateTime(0)
+  device        device[]
   match         match[]
   match_move    match_move[]
   match_piece   match_piece[]
   match_player  match_player[]
   refresh_token refresh_token[]
+}
+
+model device {
+  id            Int                @id @default(autoincrement())
+  userId        Int
+  userAgent     String             @db.Text
+  deviceType    device_deviceType? @default(unknown)
+  firstSeenAt   DateTime?          @default(now()) @db.DateTime(0)
+  lastSeenAt    DateTime?          @default(now()) @db.DateTime(0)
+  user          user               @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "device_ibfk_1")
+  refresh_token refresh_token[]
+
+  @@index([userId], map: "userId")
 }
 
 enum match_status {
@@ -112,4 +131,12 @@ enum match_piece_type {
 enum match_player_color {
   WHITE
   BLACK
+}
+
+enum device_deviceType {
+  desktop
+  mobile
+  tablet
+  bot
+  unknown
 }
