@@ -3,7 +3,7 @@
 import React, { PropsWithChildren, useEffect } from "react";
 
 import { useAutoRefresh } from "@/lib/auth/useAutoRefresh";
-import { getOrCreateDeviceId } from "@/lib/device";
+import { getDeviceId } from "@/lib/device";
 
 /**
  * AutoRefreshProvider
@@ -11,7 +11,7 @@ import { getOrCreateDeviceId } from "@/lib/device";
  */
 export default function AutoRefreshProvider({ children }: PropsWithChildren) {
     useEffect(() => {
-        try { getOrCreateDeviceId(); } catch { /* ignore */ }
+        try { getDeviceId(); } catch { /* ignore */ }
     }, []);
     useAutoRefresh();
     return <>{children}</>;

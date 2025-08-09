@@ -10,7 +10,7 @@ import { secureFetch } from "@/lib/auth/refresh-client";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { getOrCreateDeviceId } from "@/lib/device";
+import { getDeviceId, setDeviceId } from "@/lib/device";
 
 const formSchema = z.object({
     email: z.email("Invalid email"),
@@ -31,19 +31,22 @@ export default function LoginPage() {
         setError(null);
 
         try {
-            const deviceId = getOrCreateDeviceId();
+            const existingDeviceId = getDeviceId();
+            const headers: Record<string, string> = { 
+                "Content-Type": "application/json"
+            };
+            if (existingDeviceId) headers["x-device-id"] = String(existingDeviceId);
 
             const res = await secureFetch("/api/auth/login", {
                 method: "POST",
-                headers: { 
-                    "Content-Type": "application/json",
-                    "x-device-id": deviceId
-                },
+                headers,
                 body: JSON.stringify(values)
             });
 
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Login failed");
+
+            if (data.deviceId) setDeviceId(Number(data.deviceId));
 
             router.push("/");
         } catch (err: any) {

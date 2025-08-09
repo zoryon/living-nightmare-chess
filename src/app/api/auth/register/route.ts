@@ -2,12 +2,13 @@ import bcrypt from "bcrypt";
 
 import { prisma } from "@/lib/prisma";
 import { setAccessTokenCookie, setRefreshTokenCookie } from "@/lib/jwt";
+import { detectDeviceType } from "@/lib/utils";
 
 const SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS ?? 12);
 
 export async function POST(req: Request) {
     const { email, username, password } = await req.json();
-    const deviceId = req.headers.get("x-device-id") || "";
+    const existingDeviceIdHeader = req.headers.get("x-device-id");
 
     if (!username || !password) {
         return new Response(JSON.stringify({ error: "username and password required" }), { status: 400 });
@@ -33,11 +34,25 @@ export async function POST(req: Request) {
         select: { id: true, email: true, username: true, createdAt: true }
     });
 
-    // Automatically log-in
-    await setRefreshTokenCookie(user.id, deviceId);
+    // Create or use existing device
+    let deviceId: number | null = existingDeviceIdHeader ? Number(existingDeviceIdHeader) : null;
+    if (deviceId && !Number.isInteger(deviceId)) deviceId = null;
+
+    if (!deviceId) {
+        const userAgent = req.headers.get("user-agent") || "";
+        const deviceType = detectDeviceType(userAgent);
+        const device = await prisma.device.create({
+            data: { userId: user.id, userAgent, deviceType },
+            select: { id: true }
+        });
+        deviceId = device.id;
+    }
+
+    // Automatically log-in (with device id)
+    await setRefreshTokenCookie(user.id, deviceId!);
     await setAccessTokenCookie(user.id);
 
-    return new Response(JSON.stringify({ user }), {
+    return new Response(JSON.stringify({ user, deviceId }), {
         status: 201,
         headers: { "Content-Type": "application/json" }
     });

@@ -10,7 +10,7 @@ import { secureFetch } from "@/lib/auth/refresh-client";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { getOrCreateDeviceId } from "@/lib/device";
+import { getDeviceId, setDeviceId } from "@/lib/device";
 
 const formSchema = z.object({
     username: z.string().min(3, "Username must be at least 3 characters"),
@@ -32,17 +32,20 @@ export default function RegisterPage() {
         setError(null);
 
         try {
+            const existingDeviceId = getDeviceId();
+            const headers: Record<string, string> = { "Content-Type": "application/json" };
+            if (existingDeviceId) headers["x-device-id"] = String(existingDeviceId);
+
             const res = await secureFetch("/api/auth/register", {
                 method: "POST",
-                headers: { 
-                    "Content-Type": "application/json",
-                    "x-device-id": getOrCreateDeviceId()
-                },
+                headers,
                 body: JSON.stringify(values)
             });
 
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Registration failed");
+
+            if (data.deviceId) setDeviceId(Number(data.deviceId));
 
             router.push("/");
         } catch (err: any) {

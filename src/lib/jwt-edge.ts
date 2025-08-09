@@ -1,7 +1,5 @@
 import { jwtVerify } from "jose";
 
-import { prisma } from "@/lib/prisma";
-
 const ACCESS_SECRET = new TextEncoder().encode(process.env.JWT_ACCESS_SECRET!);
 const REFRESH_SECRET = new TextEncoder().encode(process.env.JWT_REFRESH_SECRET!);
 

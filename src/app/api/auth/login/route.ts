@@ -2,12 +2,13 @@ import bcrypt from "bcrypt";
 
 import { prisma } from "@/lib/prisma";
 import { setAccessTokenCookie, setRefreshTokenCookie } from "@/lib/jwt";
+import { detectDeviceType } from "@/lib/utils";
 import { refresh_token } from "../../../../../generated/prisma";
 import { cookies } from "next/headers";
 
 export async function POST(req: Request) {
     const { email, password } = await req.json();
-    const deviceId = req.headers.get("x-device-id") || "";
+    const existingDeviceIdHeader = req.headers.get("x-device-id");
 
     if (!email || !password) {
         return new Response(JSON.stringify({ error: "email and password required" }), { status: 400 });
@@ -19,14 +20,35 @@ export async function POST(req: Request) {
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) return new Response(JSON.stringify({ error: "Invalid credentials" }), { status: 401 });
 
+    let deviceId: number | null = existingDeviceIdHeader ? Number(existingDeviceIdHeader) : null;
+    if (deviceId && !Number.isInteger(deviceId)) deviceId = null;
+
+    // Create device if not provided or does not exist (first login from this browser)
+    if (!deviceId) {
+        const userAgent = req.headers.get("user-agent") || "";
+        const deviceType = detectDeviceType(userAgent);
+        const device = await prisma.device.create({
+            data: {
+                userId: user.id,
+                userAgent,
+                deviceType
+            },
+            select: { id: true }
+        });
+        deviceId = device.id;
+    } else {
+        // Update lastSeenAt
+        await prisma.device.update({ where: { id: deviceId }, data: { lastSeenAt: new Date() } }).catch(() => {});
+    }
+
     // Check if there is already a valid refresh token for this device
-    const refreshTokenRecord: refresh_token | null = await prisma.refresh_token.findFirst({
+    const refreshTokenRecord: refresh_token | null = deviceId ? await prisma.refresh_token.findFirst({
         where: {
             userId: user.id,
             deviceId,
             expiresAt: { gt: new Date() }
         }
-    });
+    }) : null;
 
     if (refreshTokenRecord) {
         // Set the already existing token as cookie
@@ -39,12 +61,12 @@ export async function POST(req: Request) {
         });
     } else {
         // Create a new refresh token
-        await setRefreshTokenCookie(user.id, deviceId);
+        await setRefreshTokenCookie(user.id, deviceId!);
     }
     
     await setAccessTokenCookie(user.id);
 
-    return new Response(JSON.stringify({ user }), {
+    return new Response(JSON.stringify({ user, deviceId }), {
         status: 200,
         headers: { "Content-Type": "application/json" }
     });
