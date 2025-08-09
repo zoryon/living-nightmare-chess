@@ -6,6 +6,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 
+import { secureFetch } from "@/lib/auth/refresh-client";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -32,10 +33,13 @@ export default function LoginPage() {
         try {
             const deviceId = getOrCreateDeviceId();
 
-            const res = await fetch("/api/auth/login", {
+            const res = await secureFetch("/api/auth/login", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ...values, deviceId })
+                headers: { 
+                    "Content-Type": "application/json",
+                    "x-device-id": deviceId
+                },
+                body: JSON.stringify(values)
             });
 
             const data = await res.json();

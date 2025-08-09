@@ -1,3 +1,5 @@
+import { getOrCreateDeviceId } from "../device";
+
 let refreshing: Promise<boolean> | null = null;
 
 async function callRefresh(): Promise<boolean> {
@@ -24,10 +26,20 @@ export async function ensureFreshToken(): Promise<boolean> {
 }
 
 // Fetch wrapper example
-export async function authFetch(input: RequestInfo, init: RequestInit = {}): Promise<Response> {
-    const res = await fetch(input, init);
-    if (res.status !== 401) return res;
-    const ok = await ensureFreshToken();
-    if (!ok) return res; // still 401
-    return fetch(input, init); // retry once
+export async function secureFetch(url: string, options: RequestInit = {}) {
+    let res = await fetch(url, options);
+
+    if (res.headers.get("x-token-status") === "stale") {
+        // Refresh the token without interrupting the user experience
+        await fetch("/api/auth/refresh", { 
+            method: "POST",
+            credentials: "include",
+            headers: { "x-device-id": getOrCreateDeviceId() }
+        });
+
+        // Retry the original request after refreshing
+        res = await fetch(url, options);
+    }
+
+    return res;
 }

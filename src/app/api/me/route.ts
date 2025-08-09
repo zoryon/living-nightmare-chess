@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { verifyAccessToken } from "@/lib/jwt";
+import { verifyAccessToken } from "@/lib/jwt-edge";
 
 export async function GET(req: Request) {
     const auth = req.headers.get("authorization") ?? "";
@@ -8,7 +8,7 @@ export async function GET(req: Request) {
         return new Response(JSON.stringify({ error: "Missing token" }), { status: 401 });
     }
     const token = parts[1];
-    const payload = verifyAccessToken(token);
+    const payload = await verifyAccessToken(token);
     if (!payload) return new Response(JSON.stringify({ error: "Invalid token" }), { status: 401 });
 
     const userId = (payload as any).userId;

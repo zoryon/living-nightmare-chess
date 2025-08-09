@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 
+import { secureFetch } from "@/lib/auth/refresh-client";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -31,10 +32,13 @@ export default function RegisterPage() {
         setError(null);
 
         try {
-            const res = await fetch("/api/auth/register", {
+            const res = await secureFetch("/api/auth/register", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ...values, deviceId: getOrCreateDeviceId() })
+                headers: { 
+                    "Content-Type": "application/json",
+                    "x-device-id": getOrCreateDeviceId()
+                },
+                body: JSON.stringify(values)
             });
 
             const data = await res.json();

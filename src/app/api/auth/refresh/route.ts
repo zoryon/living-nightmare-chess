@@ -1,7 +1,8 @@
 import { cookies } from "next/headers";
 
 import { prisma } from "@/lib/prisma";
-import { verifyRefreshToken, setAccessTokenCookie, setRefreshTokenCookie } from "@/lib/jwt";
+import { setAccessTokenCookie } from "@/lib/jwt";
+import { verifyRefreshToken } from "@/lib/jwt-edge";
 
 export async function POST(request: Request) {
     const deviceId = request.headers.get("x-device-id") || "";
@@ -15,7 +16,7 @@ export async function POST(request: Request) {
     }
 
     // Verify token signature first
-    const payload = verifyRefreshToken(token);
+    const payload = await verifyRefreshToken(token);
     if (!payload) {
         return new Response(JSON.stringify({ error: "invalid_refresh_token" }), { status: 401 });
     }
@@ -26,8 +27,7 @@ export async function POST(request: Request) {
         return new Response(JSON.stringify({ error: "invalid_refresh_token" }), { status: 401 });
     }
 
-    // Rotate refresh token (optional but recommended)
-    await setRefreshTokenCookie(stored.userId, deviceId);
     await setAccessTokenCookie(stored.userId);
-    return new Response(JSON.stringify({ ok: true, rotated: true }), { status: 200 });
+
+    return new Response(JSON.stringify({ ok: true }), { status: 200 });
 }

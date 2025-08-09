@@ -16,24 +16,8 @@ export function signAccessToken(payload: object) {
     return jwt.sign(payload, ACCESS_SECRET, { expiresIn: `${ACCESS_EXPIRES_IN}s` });
 }
 
-export function verifyAccessToken(token: string) {
-    try {
-        return jwt.verify(token, ACCESS_SECRET) as any;
-    } catch {
-        return null;
-    }
-}
-
 export function signRefreshToken(payload: object) {
     return jwt.sign(payload, REFRESH_SECRET, { expiresIn: `${REFRESH_EXPIRES_IN_DAYS}d` });
-}
-
-export function verifyRefreshToken(token: string) {
-    try {
-        return jwt.verify(token, REFRESH_SECRET) as any;
-    } catch {
-        return null;
-    }
 }
 
 export async function setRefreshTokenCookie(userId: number, deviceId: string) {

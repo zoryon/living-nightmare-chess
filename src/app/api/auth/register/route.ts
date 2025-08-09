@@ -6,7 +6,8 @@ import { setAccessTokenCookie, setRefreshTokenCookie } from "@/lib/jwt";
 const SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS ?? 12);
 
 export async function POST(req: Request) {
-    const { email, username, password, deviceId } = await req.json();
+    const { email, username, password } = await req.json();
+    const deviceId = req.headers.get("x-device-id") || "";
 
     if (!username || !password) {
         return new Response(JSON.stringify({ error: "username and password required" }), { status: 400 });
