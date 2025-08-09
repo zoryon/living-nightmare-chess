@@ -13,17 +13,35 @@ CREATE TABLE `user` (
     UNIQUE KEY `email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE `device` (
+    `id` int NOT NULL AUTO_INCREMENT,
+    `userId` int NOT NULL,
+    `userAgent` text COLLATE utf8mb4_unicode_ci NOT NULL,
+    `deviceType` enum('desktop','mobile','tablet','bot','unknown') COLLATE utf8mb4_unicode_ci DEFAULT 'unknown',
+    `firstSeenAt` datetime DEFAULT CURRENT_TIMESTAMP,
+    `lastSeenAt` datetime DEFAULT CURRENT_TIMESTAMP,
+    
+    PRIMARY KEY (`id`),
+    KEY `userId` (`userId`),
+    CONSTRAINT `device_ibfk_1` FOREIGN KEY (`userId`) REFERENCES `user` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE `refresh_token` (
     `id` int NOT NULL AUTO_INCREMENT,
+    `userId` int NOT NULL,
+    `deviceId` int NOT NULL,
     `token` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-    `device` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+    `ipAddress` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+    `nation` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+    `region` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
     `createdAt` datetime DEFAULT CURRENT_TIMESTAMP,
     `expiresAt` datetime DEFAULT NULL,
-    `userId` int DEFAULT NULL,
     PRIMARY KEY (`id`),
     UNIQUE KEY `token` (`token`),
     KEY `userId` (`userId`),
-    CONSTRAINT `refresh_token_ibfk_1` FOREIGN KEY (`userId`) REFERENCES `user` (`id`) ON DELETE CASCADE
+    KEY `deviceId` (`deviceId`),
+    CONSTRAINT `refresh_token_ibfk_1` FOREIGN KEY (`userId`) REFERENCES `user` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `refresh_token_ibfk_2` FOREIGN KEY (`deviceId`) REFERENCES `device` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `match` (
