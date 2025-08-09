@@ -34,7 +34,7 @@ export async function POST(req: Request) {
     });
 
     // Automatically log-in
-    await setRefreshTokenCookie(user.id, deviceId || "unknown");
+    await setRefreshTokenCookie(user.id, deviceId);
     await setAccessTokenCookie(user.id);
 
     return new Response(JSON.stringify({ user }), {

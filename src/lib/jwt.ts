@@ -21,7 +21,7 @@ export function signRefreshToken(payload: object) {
 }
 
 export async function setRefreshTokenCookie(userId: number, deviceId: string) {
-    const token = signRefreshToken({ userId });
+    const token = signRefreshToken({ userId, deviceId });
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + REFRESH_EXPIRES_IN_DAYS);
 

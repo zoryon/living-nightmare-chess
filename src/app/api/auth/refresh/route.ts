@@ -21,13 +21,11 @@ export async function POST(request: Request) {
         return new Response(JSON.stringify({ error: "invalid_refresh_token" }), { status: 401 });
     }
 
-    // Ensure token exists in DB for that device
+    // Check if the token exists, for this device, in the database
     const stored = await prisma.refresh_token.findFirst({ where: { token, deviceId } });
-    if (!stored || !stored.expiresAt || stored.expiresAt < new Date() || stored.userId == null) {
-        return new Response(JSON.stringify({ error: "invalid_refresh_token" }), { status: 401 });
-    }
+    if (!stored || stored.expiresAt! < new Date()) return null;
 
-    await setAccessTokenCookie(stored.userId);
+    await setAccessTokenCookie(stored.userId as number);
 
     return new Response(JSON.stringify({ ok: true }), { status: 200 });
 }
