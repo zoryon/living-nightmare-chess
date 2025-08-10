@@ -5,19 +5,26 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-// Helper to convert secret string to Uint8Array for jose
-function getSecretKey(secret: string) {
-  return new TextEncoder().encode(secret);
-}
-
-// Extract client IP using standard headers (no third-party service). In Next.js
-// behind reverse proxies (Vercel, etc.) x-forwarded-for contains a comma list.
+// Behind reverse proxies (Vercel, etc.) x-forwarded-for contains a comma list.
 export function extractClientIp(headers: Headers): string | null {
-  const xff = headers.get("x-forwarded-for");
-  if (xff) return xff.split(",")[0].trim();
+  const forwardedFor = headers.get("x-forwarded-for")?.split(",")[0];
+  if (forwardedFor) return forwardedFor.split(",")[0].trim();
+  
   const realIp = headers.get("x-real-ip");
   if (realIp) return realIp.trim();
-  return null; // Remote IP not available in edge/runtime API without Node req
+
+  return null;
+}
+
+export function getGeolocation(headers: Headers) {
+  const countryCode  = headers.get('X-Vercel-IP-Country');
+  const regionCode  = headers.get('X-Vercel-IP-Country-Region');
+
+  const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
+
+  const country = countryCode ? regionNames.of(countryCode ) : 'Unknown';
+
+  return { country, region: regionCode };
 }
 
 export function detectDeviceType(userAgent: string | null): "desktop" | "mobile" | "tablet" | "bot" | "unknown" {

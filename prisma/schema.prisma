@@ -75,7 +75,7 @@ model refresh_token {
   deviceId  Int
   token     String?   @unique(map: "token") @db.VarChar(255)
   ipAddress String?   @db.VarChar(45)
-  nation    String?   @db.VarChar(100)
+  country   String?   @db.VarChar(100)
   region    String?   @db.VarChar(100)
   createdAt DateTime? @default(now()) @db.DateTime(0)
   expiresAt DateTime? @db.DateTime(0)

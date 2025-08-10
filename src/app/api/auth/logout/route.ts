@@ -4,7 +4,7 @@ import { clearRefreshTokenCookie } from "@/lib/jwt";
 
 export async function POST() {
     const cookieStore = await cookies();
-    const token = cookieStore.get("refreshToken")?.value;
+    const token = cookieStore.get("refresh_token")?.value;
     if (token) {
         await clearRefreshTokenCookie(token);
     }

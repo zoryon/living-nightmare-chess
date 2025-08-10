@@ -32,7 +32,7 @@ CREATE TABLE `refresh_token` (
     `deviceId` int NOT NULL,
     `token` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
     `ipAddress` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-    `nation` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+    `country` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
     `region` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
     `createdAt` datetime DEFAULT CURRENT_TIMESTAMP,
     `expiresAt` datetime DEFAULT NULL,

@@ -2,7 +2,7 @@ import bcrypt from "bcrypt";
 
 import { prisma } from "@/lib/prisma";
 import { setAccessTokenCookie, setRefreshTokenCookie } from "@/lib/jwt";
-import { detectDeviceType } from "@/lib/utils";
+import { detectDeviceType, extractClientIp, getGeolocation } from "@/lib/utils";
 
 const SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS ?? 12);
 
@@ -48,8 +48,16 @@ export async function POST(req: Request) {
         deviceId = device.id;
     }
 
+    const ipAddress = extractClientIp(req.headers);
+    const geo = getGeolocation(req.headers);
+
     // Automatically log-in (with device id)
-    await setRefreshTokenCookie(user.id, deviceId!);
+    await setRefreshTokenCookie({
+        userId: user.id,
+        deviceId: deviceId!,
+        ipAddress,
+        geo
+    });
     await setAccessTokenCookie(user.id);
 
     return new Response(JSON.stringify({ user, deviceId }), {

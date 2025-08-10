@@ -2,7 +2,7 @@ import bcrypt from "bcrypt";
 
 import { prisma } from "@/lib/prisma";
 import { setAccessTokenCookie, setRefreshTokenCookie } from "@/lib/jwt";
-import { detectDeviceType } from "@/lib/utils";
+import { detectDeviceType, extractClientIp, getGeolocation } from "@/lib/utils";
 import { refresh_token } from "../../../../../generated/prisma";
 import { cookies } from "next/headers";
 
@@ -60,8 +60,16 @@ export async function POST(req: Request) {
             expires: refreshTokenRecord.expiresAt ?? undefined
         });
     } else {
+        const ipAddress = extractClientIp(req.headers);
+        const geo = getGeolocation(req.headers);
+
         // Create a new refresh token
-        await setRefreshTokenCookie(user.id, deviceId!);
+        await setRefreshTokenCookie({
+            userId: user.id,
+            deviceId: deviceId!,
+            ipAddress,
+            geo
+        });
     }
     
     await setAccessTokenCookie(user.id);

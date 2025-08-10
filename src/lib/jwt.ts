@@ -20,7 +20,17 @@ export function signRefreshToken(payload: object) {
     return jwt.sign(payload, REFRESH_SECRET, { expiresIn: `${REFRESH_EXPIRES_IN_DAYS}d` });
 }
 
-export async function setRefreshTokenCookie(userId: number, deviceId: number) {
+export async function setRefreshTokenCookie({ 
+    userId, 
+    deviceId, 
+    ipAddress, 
+    geo 
+}: {
+    userId: number, 
+    deviceId: number, 
+    ipAddress?: string | null, 
+    geo?: { country: string | undefined, region: string | null }
+}) {
     const token = signRefreshToken({ userId, deviceId });
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + REFRESH_EXPIRES_IN_DAYS);
@@ -36,7 +46,10 @@ export async function setRefreshTokenCookie(userId: number, deviceId: number) {
             token,
             deviceId,
             userId,
-            expiresAt
+            expiresAt,
+            ipAddress: ipAddress || null,
+            country: geo?.country || null,
+            region: geo?.region || null,
         }
     });
 
