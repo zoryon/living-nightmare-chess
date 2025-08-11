@@ -64,7 +64,7 @@ export async function setRefreshTokenCookie({
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
-        path: "/",
+        path: "/refresh",
         expires: expiresAt
     });
 
