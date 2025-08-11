@@ -14,10 +14,11 @@ export async function POST(req: Request) {
         return new Response(JSON.stringify({ error: "email and password required" }), { status: 400 });
     }
 
-    const user = await prisma.user.findFirst({
-        where: { email, isEmailVerified: true },
-    });
-    if (!user) return new Response(JSON.stringify({ error: "Invalid credentials" }), { status: 401 });
+    // Find the user by unique email and then verify the email verification flag separately
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user || !user.isEmailVerified) {
+        return new Response(JSON.stringify({ error: "Invalid credentials" }), { status: 401 });
+    }
 
     const valid = await bcrypt.compare(password, user.passwordHash);
     if (!valid) return new Response(JSON.stringify({ error: "Invalid credentials" }), { status: 401 });
