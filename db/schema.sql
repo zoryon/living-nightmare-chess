@@ -7,7 +7,7 @@ CREATE TABLE `user` (
     `email` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
     `username` varchar(25) COLLATE utf8mb4_unicode_ci NOT NULL,
     `passwordHash` text COLLATE utf8mb4_unicode_ci NOT NULL,
-    `isEmailVerified` tinyint DEFAULT '0',
+    `isEmailVerified` tinyint(1) DEFAULT '0',
     `createdAt` datetime DEFAULT CURRENT_TIMESTAMP,
     `updatedAt` datetime DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
