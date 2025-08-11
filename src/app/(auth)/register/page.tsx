@@ -15,21 +15,29 @@ import { getDeviceId, setDeviceId } from "@/lib/device";
 const formSchema = z.object({
     username: z.string().min(3, "Username must be at least 3 characters"),
     email: z.email("Invalid email"),
-    password: z.string().min(6, "Password must be at least 6 characters")
+    password: z.string().min(6, "Password must be at least 6 characters"),
+    passwordConfirmation: z.string().min(6, "Password confirmation must be at least 6 characters")
+})
+.refine((data) => data.password === data.passwordConfirmation, {
+    message: "Passwords do not match",
+    path: ["passwordConfirmation"],
 });
 
 export default function RegisterPage() {
     const router = useRouter();
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
-        defaultValues: { username: "", email: "", password: "" }
+        defaultValues: { username: "", email: "", password: "", passwordConfirmation: "" }
     });
     const [loading, setLoading] = React.useState(false);
     const [error, setError] = React.useState<string | null>(null);
 
+    const [success, setSuccess] = React.useState(false);
+
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setLoading(true);
         setError(null);
+        setSuccess(false);
 
         try {
             const existingDeviceId = getDeviceId();
@@ -46,8 +54,7 @@ export default function RegisterPage() {
             if (!res.ok) throw new Error(data.error || "Registration failed");
 
             if (data.deviceId) setDeviceId(Number(data.deviceId));
-
-            router.push("/");
+            setSuccess(true);
         } catch (err: any) {
             setError(err.message);
         } finally {
@@ -102,13 +109,32 @@ export default function RegisterPage() {
                         )}
                     />
 
+                    <FormField
+                        control={form.control}
+                        name="passwordConfirmation"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Confirm your password</FormLabel>
+                                <FormControl>
+                                    <Input type="password" placeholder="********" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
                     {error && <p className="text-red-500 text-sm">{error}</p>}
 
-                    <Button type="submit" className="w-full" disabled={loading}>
                         {loading ? "Registering..." : "Register"}
+                    <Button type="submit" className="w-full cursor-pointer" disabled={loading}>
                     </Button>
                 </form>
             </Form>
+            {success && (
+                <div className="mt-5 text-sm text-green-500">
+                    We've sent an email, please verify your account.
+                </div>
+            )}
         </div>
     );
 }

@@ -1,16 +1,18 @@
 import bcrypt from "bcrypt";
 
 import { prisma } from "@/lib/prisma";
-import { setAccessTokenCookie, setRefreshTokenCookie } from "@/lib/jwt";
-import { detectDeviceType, extractClientIp, getGeolocation } from "@/lib/utils";
+import { detectDeviceType } from "@/lib/utils";
+import { NextRequest } from "next/server";
+import { transporter } from "@/lib/mailer";
+import { signEmailToken } from "@/lib/jwt";
 
-const SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS ?? 12);
+const SALT_ROUNDS = Number(process.env.BCRYPT_SALT_ROUNDS || 12);
 
-export async function POST(req: Request) {
-    const { email, username, password } = await req.json();
+export async function POST(req: NextRequest) {
+    const { email, username, password, passwordConfirmation } = await req.json();
     const existingDeviceIdHeader = req.headers.get("x-device-id");
 
-    if (!username || !password) {
+    if (!username || !password || !passwordConfirmation) {
         return new Response(JSON.stringify({ error: "username and password required" }), { status: 400 });
     }
 
@@ -23,13 +25,18 @@ export async function POST(req: Request) {
         if (exists) return new Response(JSON.stringify({ error: "Email already registered" }), { status: 409 });
     }
 
+    if (passwordConfirmation !== password) {
+        return new Response(JSON.stringify({ error: "Passwords do not match" }), { status: 400 });
+    }
+
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
 
     const user = await prisma.user.create({
         data: {
             email,
             username,
-            passwordHash
+            passwordHash,
+            isEmailVerified: false,
         },
         select: { id: true, email: true, username: true, createdAt: true }
     });
@@ -48,20 +55,20 @@ export async function POST(req: Request) {
         deviceId = device.id;
     }
 
-    const ipAddress = extractClientIp(req.headers);
-    const geo = getGeolocation(req.headers);
+    // Prepare confirmation link
+    const token = signEmailToken({ userId: user.id, deviceId });
+    const confirmationLink = `${process.env.WEBSITE_URL!}/register/confirm?token=${token}`;
 
-    // Automatically log-in (with device id)
-    await setRefreshTokenCookie({
-        userId: user.id,
-        deviceId: deviceId!,
-        ipAddress,
-        geo
+    // Send confirmation email
+    transporter.sendMail({
+        from: process.env.SMTP_FROM,
+        to: user.email!,
+        subject: "Confirm Your Email",
+        html: `<p>Please confirm your email by clicking <a href="${confirmationLink}">here</a>.</p>`,
     });
-    await setAccessTokenCookie(user.id);
 
-    return new Response(JSON.stringify({ user, deviceId }), {
-        status: 201,
+    return new Response(JSON.stringify({ deviceId }), {
+        status: 200,
         headers: { "Content-Type": "application/json" }
     });
 }

@@ -29,7 +29,18 @@ export async function POST(request: Request) {
     }
 
     // Check if the token exists, for this device, in the database
-    const stored = await prisma.refresh_token.findFirst({ where: { token, deviceId: deviceId! } });
+    const stored = await prisma.refresh_token.findFirst({
+        where: {
+            token,
+            deviceId: deviceId!,
+            user: {
+                isEmailVerified: { not: null }
+            }
+        },
+        include: {
+            user: true
+        }
+    });
     if (!stored || stored.expiresAt! < new Date()) {
         return new Response(JSON.stringify({ error: "invalid_refresh_token_device" }), { status: 401 });
     }

@@ -7,8 +7,10 @@ import { verifyAccessToken, verifyRefreshToken } from "@/lib/jwt-edge";
 const PUBLIC_ONLY_PATHS = [
     "/login", 
     "/register", 
+    "/register/confirm",
     "/api/auth/login", 
-    "/api/auth/register"
+    "/api/auth/register",
+    "/api/auth/register/confirm"
 ];
 
 // Paths accessible by everyone (optional, e.g. static)

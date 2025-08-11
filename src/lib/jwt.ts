@@ -5,10 +5,12 @@ import { prisma } from "@/lib/prisma";
 
 const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET!;
 const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET!;
+const EMAIL_SECRET = process.env.JWT_EMAIL_SECRET!;
 const ACCESS_EXPIRES_IN = Number(process.env.ACCESS_TOKEN_EXPIRES_IN ?? 900); // 15 min
 const REFRESH_EXPIRES_IN_DAYS = Number(process.env.REFRESH_TOKEN_EXPIRES_IN_DAYS ?? 30); // 30 days
+const EMAIL_EXPIRES_IN = Number(process.env.EMAIL_TOKEN_EXPIRES_IN ?? 1800); // 30 min
 
-if (!ACCESS_SECRET || !REFRESH_SECRET) {
+if (!ACCESS_SECRET || !REFRESH_SECRET || !EMAIL_SECRET) {
     throw new Error("Missing JWT secrets in env");
 }
 
@@ -18,6 +20,10 @@ export function signAccessToken(payload: object) {
 
 export function signRefreshToken(payload: object) {
     return jwt.sign(payload, REFRESH_SECRET, { expiresIn: `${REFRESH_EXPIRES_IN_DAYS}d` });
+}
+
+export function signEmailToken(payload: object) {
+    return jwt.sign(payload, EMAIL_SECRET, { expiresIn: `${EMAIL_EXPIRES_IN}s` });
 }
 
 export async function setRefreshTokenCookie({ 

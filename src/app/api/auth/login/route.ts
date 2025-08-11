@@ -14,7 +14,7 @@ export async function POST(req: Request) {
         return new Response(JSON.stringify({ error: "email and password required" }), { status: 400 });
     }
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({ where: { email, isEmailVerified: true } });
     if (!user) return new Response(JSON.stringify({ error: "Invalid credentials" }), { status: 401 });
 
     const valid = await bcrypt.compare(password, user.passwordHash);
@@ -74,7 +74,7 @@ export async function POST(req: Request) {
     
     await setAccessTokenCookie(user.id);
 
-    return new Response(JSON.stringify({ user, deviceId }), {
+    return new Response(JSON.stringify({ deviceId }), {
         status: 200,
         headers: { "Content-Type": "application/json" }
     });

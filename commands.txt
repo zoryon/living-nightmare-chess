@@ -1,0 +1,2 @@
+# Generate a 64 bit secret
+openssl rand -hex 64

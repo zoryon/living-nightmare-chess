@@ -87,18 +87,19 @@ model refresh_token {
 }
 
 model user {
-  id            Int             @id @default(autoincrement())
-  email         String?         @unique(map: "email") @db.VarChar(255)
-  username      String          @db.VarChar(25)
-  passwordHash  String          @db.Text
-  createdAt     DateTime?       @default(now()) @db.DateTime(0)
-  updatedAt     DateTime?       @default(now()) @db.DateTime(0)
-  device        device[]
-  match         match[]
-  match_move    match_move[]
-  match_piece   match_piece[]
-  match_player  match_player[]
-  refresh_token refresh_token[]
+  id              Int             @id @default(autoincrement())
+  email           String?         @unique(map: "email") @db.VarChar(255)
+  username        String          @db.VarChar(25)
+  passwordHash    String          @db.Text
+  createdAt       DateTime?       @default(now()) @db.DateTime(0)
+  updatedAt       DateTime?       @default(now()) @db.DateTime(0)
+  isEmailVerified Boolean?        @default(false)
+  device          device[]
+  match           match[]
+  match_move      match_move[]
+  match_piece     match_piece[]
+  match_player    match_player[]
+  refresh_token   refresh_token[]
 }
 
 model device {
