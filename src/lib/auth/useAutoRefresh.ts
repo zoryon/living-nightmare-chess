@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 
 import { ensureFreshToken } from "@/lib/auth/refresh-client";
 
-export function useAutoRefresh(intervalSeconds = 480) { // 8 minutes default
+export function useAutoRefresh(intervalSeconds = 120) { // 2 minutes default
     const started = useRef(false);
     useEffect(() => {
         if (started.current) return;
