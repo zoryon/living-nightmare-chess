@@ -6,7 +6,7 @@ export type Ability = {
   cost?: number;          // Dream Energy cost if active
   maxUses?: number;       // Only for active abilities
   description: string;    // Tooltip or UI
-  effect: (ctx: AbilityContext) => void; // Logic (game context passed in)
+  effect: (ctx: any) => void; // Logic (game context passed in)
 };
 
 export type PieceType = {
