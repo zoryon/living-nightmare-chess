@@ -59,13 +59,18 @@ export async function POST(req: NextRequest) {
     const token = signEmailToken({ userId: user.id, deviceId });
     const confirmationLink = `${process.env.WEBSITE_URL!}/register/confirm?token=${token}`;
 
-    // Send confirmation email
-    transporter.sendMail({
-        from: process.env.SMTP_FROM,
-        to: user.email!,
-        subject: "Confirm Your Email",
-        html: `<p>Please confirm your email by clicking <a href="${confirmationLink}">here</a>.</p>`,
-    });
+    // Send confirmation email (must await in serverless env so the process doesn't exit early)
+    try {
+        await transporter.sendMail({
+            from: process.env.SMTP_FROM,
+            to: user.email!,
+            subject: "Confirm Your Email",
+            html: `<p>Please confirm your email by clicking <a href="${confirmationLink}">here</a>.</p>`,
+        });
+    } catch (e) {
+        console.error("Failed to send confirmation email", e);
+        return new Response(JSON.stringify({ error: "email_send_failed" }), { status: 500 });
+    }
 
     return new Response(JSON.stringify({ deviceId }), {
         status: 200,
