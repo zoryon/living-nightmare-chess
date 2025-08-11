@@ -14,7 +14,9 @@ export async function POST(req: Request) {
         return new Response(JSON.stringify({ error: "email and password required" }), { status: 400 });
     }
 
-    const user = await prisma.user.findUnique({ where: { email, isEmailVerified: true } });
+    const user = await prisma.user.findFirst({
+        where: { email, isEmailVerified: true },
+    });
     if (!user) return new Response(JSON.stringify({ error: "Invalid credentials" }), { status: 401 });
 
     const valid = await bcrypt.compare(password, user.passwordHash);
