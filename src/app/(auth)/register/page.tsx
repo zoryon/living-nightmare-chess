@@ -125,8 +125,8 @@ export default function RegisterPage() {
 
                     {error && <p className="text-red-500 text-sm">{error}</p>}
 
-                        {loading ? "Registering..." : "Register"}
                     <Button type="submit" className="w-full cursor-pointer" disabled={loading}>
+                        {loading ? "Registering..." : "Register"}
                     </Button>
                 </form>
             </Form>
