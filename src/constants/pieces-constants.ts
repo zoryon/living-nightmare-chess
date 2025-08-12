@@ -109,9 +109,9 @@ export const PIECES: Record<string, PieceType> = {
             effect: (ctx) => { /* logic */ }
         },
         passiveAbility: {
-            name: "Mind Parasite",
+            name: "Mental Echo",
             trigger: "passive",
-            description: "Enemy pieces within attack range have their maximum movement reduced by 1 square",
+            description: "When captured, the captor must declare its next intended move (if it plans to move that piece) at the start of its turn.",
             effect: (ctx) => { /* logic */ }
         }
     },
