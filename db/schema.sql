@@ -50,6 +50,7 @@ CREATE TABLE `match` (
     `status` enum('ONGOING','FINISHED') COLLATE utf8mb4_unicode_ci NOT NULL,
     `createdAt` datetime DEFAULT CURRENT_TIMESTAMP,
     `winnerId` int DEFAULT NULL,
+    `turn` int NOT NULL DEFAULT 1,
     PRIMARY KEY (`id`),
     CONSTRAINT `match_ibfk_1` FOREIGN KEY (`winnerId`) REFERENCES `user` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -83,6 +84,7 @@ CREATE TABLE `match_piece` (
     `posY` tinyint DEFAULT NULL,
     `usedAbility` tinyint DEFAULT '0',
     `captured` tinyint DEFAULT '0',
+    `status` JSON,
     PRIMARY KEY (`id`),
     KEY `matchId` (`matchId`),
     KEY `playerId` (`playerId`),
@@ -95,9 +97,20 @@ CREATE TABLE `match_player` (
     `userId` int,
     `matchId` int NOT NULL,
     `color` enum('WHITE','BLACK') COLLATE utf8mb4_unicode_ci NOT NULL,
+    `dreamEnergy` int NOT NULL DEFAULT 10,
     PRIMARY KEY (`id`),
     KEY `matchId` (`matchId`),
     KEY `userId` (`userId`),
     CONSTRAINT `match_player_ibfk_1` FOREIGN KEY (`userId`) REFERENCES `user` (`id`) ON DELETE SET NULL,
     CONSTRAINT `match_player_ibfk_2` FOREIGN KEY (`matchId`) REFERENCES `match` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `match_queue` (
+    `id` INT NOT NULL AUTO_INCREMENT,
+    `userId` INT NOT NULL,
+    `status` ENUM('WAITING','MATCHED','CANCELLED') NOT NULL DEFAULT 'WAITING',
+    `joinedAt` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `userId` (`userId`),
+    FOREIGN KEY (`userId`) REFERENCES `user` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
