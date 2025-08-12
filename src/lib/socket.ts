@@ -11,7 +11,7 @@ export async function getSocket(): Promise<Socket> {
   // Make sure we have a fresh access token cookie
   await ensureFreshToken();
 
-  const res = await fetch("/api/auth/token", { credentials: "include" });
+  const res = await fetch("/api/auth/token", { method: "GET", credentials: "include" });
   const { token } = (await res.json()) as { token: string };
 
   // Use a browser-exposed env var in production; fallback to dev localhost
