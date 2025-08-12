@@ -1,4 +1,4 @@
-import { getDeviceId, setDeviceId } from "../device";
+import { getDeviceId, setDeviceId } from "@/lib/device";
 
 let refreshing: Promise<boolean> | null = null;
 

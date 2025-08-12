@@ -2,7 +2,7 @@ import bcrypt from "bcrypt";
 import { cookies } from "next/headers";
 
 import { prisma } from "@/lib/prisma";
-import { refresh_token } from "../../../../../generated/prisma";
+import { refresh_token } from "@/generated/prisma";
 import { setAccessTokenCookie, setRefreshTokenCookie } from "@/lib/jwt";
 import { detectDeviceType, extractClientIp, getGeolocation } from "@/lib/utils";
 

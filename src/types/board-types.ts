@@ -1,5 +1,5 @@
-import { $Enums } from "../../generated/prisma";
-import { JsonValue } from "../../generated/prisma/runtime/library";
+import { $Enums } from "@/generated/prisma";
+import { JsonValue } from "@/generated/prisma/runtime/library";
 
 export type BoardCell = {
   id: number;
