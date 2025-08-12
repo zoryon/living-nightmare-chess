@@ -14,7 +14,8 @@ export async function getSocket(): Promise<Socket> {
   const res = await fetch("/api/auth/token", { credentials: "include" });
   const { token } = (await res.json()) as { token: string };
 
-  const url = process.env.WEBSOCKET_URL || "http://localhost:3001";
+  // Use a browser-exposed env var in production; fallback to dev localhost
+  const url = process.env.NEXT_PUBLIC_WEBSOCKET_URL || process.env.WEBSOCKET_URL || "http://localhost:3001";
 
   socket = io(url, {
     transports: ["websocket"],
