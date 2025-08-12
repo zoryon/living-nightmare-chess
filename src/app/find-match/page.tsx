@@ -15,7 +15,7 @@ export default function FindMatchPage() {
         </p>
 
         <div>
-          <Button size="lg" onClick={findMatch} disabled={state.status === "searching"}>
+          <Button size="lg" onClick={findMatch} disabled={state.status === "searching"} className="cursor-pointer">
             {state.status === "searching" ? "Searching…" : "Find Match"}
           </Button>
         </div>
