@@ -9,7 +9,7 @@ export function cn(...inputs: ClassValue[]) {
 export function extractClientIp(headers: Headers): string | null {
   const forwardedFor = headers.get("x-forwarded-for")?.split(",")[0];
   if (forwardedFor) return forwardedFor.split(",")[0].trim();
-  
+
   const realIp = headers.get("x-real-ip");
   if (realIp) return realIp.trim();
 
@@ -17,12 +17,12 @@ export function extractClientIp(headers: Headers): string | null {
 }
 
 export function getGeolocation(headers: Headers) {
-  const countryCode  = headers.get('X-Vercel-IP-Country');
-  const regionCode  = headers.get('X-Vercel-IP-Country-Region');
+  const countryCode = headers.get("X-Vercel-IP-Country");
+  const regionCode = headers.get("X-Vercel-IP-Country-Region");
 
-  const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
+  const regionNames = new Intl.DisplayNames(["en"], { type: "region" });
 
-  const country = countryCode ? regionNames.of(countryCode ) : 'Unknown';
+  const country = countryCode ? regionNames.of(countryCode) : "Unknown";
 
   return { country, region: regionCode };
 }

@@ -10,7 +10,7 @@ const HomePage = () => {
         <h1 className="text-3xl font-semibold">Living Nightmares Chess</h1>
         <p className="text-muted-foreground">Welcome. Ready to play?</p>
         <Button asChild>
-          <Link href="/find-match">Find a Match</Link>
+          <Link href="/find-match">Go to Matchmaking page</Link>
         </Button>
       </div>
     </main>
