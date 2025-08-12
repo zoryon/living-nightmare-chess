@@ -1,10 +1,10 @@
 import bcrypt from "bcrypt";
+import { cookies } from "next/headers";
 
 import { prisma } from "@/lib/prisma";
+import { refresh_token } from "../../../../../generated/prisma";
 import { setAccessTokenCookie, setRefreshTokenCookie } from "@/lib/jwt";
 import { detectDeviceType, extractClientIp, getGeolocation } from "@/lib/utils";
-import { refresh_token } from "../../../../../generated/prisma";
-import { cookies } from "next/headers";
 
 export async function POST(req: Request) {
     const { email, password } = await req.json();
@@ -54,13 +54,14 @@ export async function POST(req: Request) {
     }) : null;
 
     if (refreshTokenRecord) {
-        // Set the already existing token as cookie
-        (await cookies()).set("refresh_token", refreshTokenRecord.token!, {
+        // Set the already existing token as cookie (standardized path)
+        const cookieStore = await cookies();
+        cookieStore.set("refresh_token", refreshTokenRecord.token!, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             sameSite: "strict",
-            path: "/",
-            expires: refreshTokenRecord.expiresAt ?? undefined
+            path: "/api/auth/refresh",
+            expires: refreshTokenRecord.expiresAt!
         });
     } else {
         const ipAddress = extractClientIp(req.headers);

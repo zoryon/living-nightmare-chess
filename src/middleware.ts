@@ -32,7 +32,8 @@ export async function middleware(req: NextRequest) {
     const accessToken = req.cookies.get("access_token")?.value || "";
     const refreshToken = req.cookies.get("refresh_token")?.value || "";
 
-    const isLoggedIn: boolean = !!(accessToken && await verifyAccessToken(accessToken));
+    const accessPayload: any = accessToken ? await verifyAccessToken(accessToken) : null;
+    const isLoggedIn: boolean = !!accessPayload;
     const hasRefreshToken: boolean = !!(refreshToken && await verifyRefreshToken(refreshToken));
 
     // Case 1: Logged in -> block login/register
@@ -46,12 +47,18 @@ export async function middleware(req: NextRequest) {
     }
 
     // Default: allow request, but mark token as stale
-    return resWithTokenStatusHeader(isLoggedIn, hasRefreshToken);
+    // If the access token is close to expiring (<=30s), mark as stale to trigger client-side refresh.
+    let expiringSoon = false;
+    if (accessPayload && typeof accessPayload.exp === "number") {
+        const now = Math.floor(Date.now() / 1000);
+        expiringSoon = accessPayload.exp - now <= 30; // 30s threshold
+    }
+    return resWithTokenStatusHeader(isLoggedIn, hasRefreshToken, expiringSoon);
 }
 
-function resWithTokenStatusHeader(isLoggedIn: boolean, hasRefreshToken: boolean) {
+function resWithTokenStatusHeader(isLoggedIn: boolean, hasRefreshToken: boolean, expiringSoon = false) {
     const res = NextResponse.next();
-    if (!isLoggedIn && hasRefreshToken) {
+    if ((!isLoggedIn && hasRefreshToken) || expiringSoon) {
         res.headers.set("x-token-status", "stale");
     }
     return res;

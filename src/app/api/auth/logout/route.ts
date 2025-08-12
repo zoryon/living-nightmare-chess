@@ -8,5 +8,7 @@ export async function POST() {
     if (token) {
         await clearRefreshTokenCookie(token);
     }
+    // Also clear access token cookie
+    cookieStore.set("access_token", "", { expires: new Date(0), path: "/" });
     return new Response(null, { status: 204 });
 }

@@ -17,15 +17,10 @@ export async function POST(request: Request) {
         return new Response(JSON.stringify({ error: "invalid_refresh_token" }), { status: 401 });
     }
 
-    // Determine device id: prefer header, else token payload
-    const headerDeviceId = request.headers.get("x-device-id");
-    let deviceId: number | null = headerDeviceId ? Number(headerDeviceId) : null;
-    if (!deviceId || !Number.isInteger(deviceId)) {
-        if (payload.deviceId && Number.isInteger(payload.deviceId)) {
-            deviceId = payload.deviceId;
-        } else {
-            return new Response(JSON.stringify({ error: "missing_device_id" }), { status: 400 });
-        }
+    // Determine device id: use token payload as source of truth to avoid header mismatch issues
+    let deviceId: number | null = (payload.deviceId && Number.isInteger(payload.deviceId)) ? Number(payload.deviceId) : null;
+    if (!deviceId) {
+        return new Response(JSON.stringify({ error: "missing_device_id" }), { status: 400 });
     }
 
     // Check if the token exists, for this device, in the database

@@ -60,7 +60,8 @@ export async function setRefreshTokenCookie({
     });
 
     // Set cookie
-    (await cookies()).set("refresh_token", token, {
+    const cookieStore = await cookies();
+    cookieStore.set("refresh_token", token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "strict",
@@ -88,5 +89,7 @@ export async function setAccessTokenCookie(userId: number) {
 
 export async function clearRefreshTokenCookie(token: string) {
     await prisma.refresh_token.deleteMany({ where: { token } });
-    (await cookies()).set("refreshToken", "", { expires: new Date(0), path: "/" });
+    const cookieStore = await cookies();
+    cookieStore.set("refresh_token", "", { expires: new Date(0), path: "/api/auth/refresh" });
+    cookieStore.set("refresh_token", "", { expires: new Date(0), path: "/" });
 }
