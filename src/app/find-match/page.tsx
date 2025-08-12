@@ -21,6 +21,9 @@ export default function FindMatchPage() {
         </div>
 
         <Status state={state.status} />
+        {state.status === "error" && state.message && (
+          <p className="text-sm text-red-500" role="alert">{state.message}</p>
+        )}
       </div>
     </main>
   );
