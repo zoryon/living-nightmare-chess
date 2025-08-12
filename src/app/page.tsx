@@ -1,8 +1,19 @@
 "use client";
 
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+
 const HomePage = () => {
   return (
-    <div>HomePage</div>
+    <main className="min-h-dvh flex items-center justify-center p-8">
+      <div className="text-center space-y-4">
+        <h1 className="text-3xl font-semibold">Living Nightmares Chess</h1>
+        <p className="text-muted-foreground">Welcome. Ready to play?</p>
+        <Button asChild>
+          <Link href="/find-match">Find a Match</Link>
+        </Button>
+      </div>
+    </main>
   );
 }
 
