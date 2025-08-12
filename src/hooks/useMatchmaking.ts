@@ -4,19 +4,17 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Socket } from "socket.io-client";
 
+import { GameState, MatchState } from "@/types";
 import { getSocket } from "@/lib/socket";
-
-export type MatchState =
-  | { status: "idle" }
-  | { status: "searching" }
-  | { status: "starting"; gameId: number }
-  | { status: "resumed"; gameId: number }
-  | { status: "error"; message: string };
+import { useMatch } from "@/contexts/MatchContext";
+import { setupMatch } from "@/lib/match/setup";
 
 export function useMatchmaking() {
   const [state, setState] = useState<MatchState>({ status: "idle" });
   const socketRef = useRef<Socket | null>(null);
   const router = useRouter();
+
+  const { setBoard, setGameId } = useMatch();
 
   useEffect(() => {
     let mounted = true;
@@ -33,8 +31,12 @@ export function useMatchmaking() {
         setState({ status: "searching" });
       });
 
-      s.on("match:start", (game) => {
+      s.on("match:start", (game: GameState) => {
+        if (!game) return console.log("Error: no game data");
         setState({ status: "starting", gameId: game.id });
+
+        setupMatch({ setBoard, setGameId, game});
+
         router.push(`/match/${game.id}`);
       });
 
@@ -45,10 +47,6 @@ export function useMatchmaking() {
 
       s.on("error:match_not_found", () => {
         setState({ status: "error", message: "No match found" });
-      });
-
-      s.on("error:opponent_disconnected", () => {
-        setState({ status: "error", message: "Opponent disconnected. Please retry." });
       });
     })();
 

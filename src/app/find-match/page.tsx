@@ -1,6 +1,6 @@
 "use client";
 
-import { useMatchmaking } from "@/lib/matchmaking";
+import { useMatchmaking } from "@/hooks/useMatchmaking";
 import { Button } from "@/components/ui/button";
 
 export default function FindMatchPage() {

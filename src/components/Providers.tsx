@@ -1,11 +1,14 @@
 "use client";
 
-import AutoRefreshProvider from "@/hooks/AutoRefreshProvider";
+import AutoRefreshProvider from "@/contexts/AutoRefreshContext";
+import { MatchProvider } from "@/contexts/MatchContext";
 
 const Providers = ({ children }: { children: React.ReactNode }) => {
   return (
     <AutoRefreshProvider>
-      {children}
+      <MatchProvider>
+        {children}
+      </MatchProvider>
     </AutoRefreshProvider>
   );
 }
