@@ -8,6 +8,8 @@ export type BoardCell = {
   usedAbility: number | null;
   captured: number | null;
   status: JsonValue;
+  // Derived at client: player's color for this piece
+  color?: "white" | "black";
 }; // Stores PieceInstance.id or null
 
 export type BoardType = (BoardCell | null)[][]; // 8x8 Board

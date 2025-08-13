@@ -16,7 +16,14 @@ export default function FindMatchPage() {
 
         <div>
           <Button size="lg" onClick={findMatch} disabled={state.status === "searching"} className="cursor-pointer">
-            {state.status === "searching" ? "Searching…" : "Find Match"}
+            {state.status === "searching" ? (
+              <span className="inline-flex items-center gap-2">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-r-transparent" />
+                Searching…
+              </span>
+            ) : (
+              "Find Match"
+            )}
           </Button>
         </div>
 
@@ -31,7 +38,7 @@ export default function FindMatchPage() {
 
 function Status({ state }: { state: string }) {
   if (state === "idle") return <p className="text-sm text-muted-foreground">Idle</p>;
-  if (state === "searching") return <p className="text-sm">Looking for an opponent…</p>;
+  if (state === "searching") return <p className="text-sm">Looking for an opponent… Stay on this page.</p>;
   if (state === "starting") return <p className="text-sm">Starting game…</p>;
   if (state === "resumed") return <p className="text-sm">Resumed existing match.</p>;
   return null;

@@ -1,7 +1,7 @@
 import { BoardCell, GameState } from "@/types";
 import { match_piece } from "@/generated/prisma";
 
-export function convertGameStateToBoard(gameState: match_piece[]): (BoardCell | null)[][] {
+export function convertGameStateToBoard(gameState: match_piece[], playerColorById?: Record<number, "white" | "black">): (BoardCell | null)[][] {
     // Initialize empty 8x8 board
     const board: (BoardCell | null)[][] = Array(8)
         .fill(null)
@@ -16,6 +16,7 @@ export function convertGameStateToBoard(gameState: match_piece[]): (BoardCell | 
                 usedAbility: p.usedAbility,
                 captured: p.captured,
                 status: p.status,
+                color: p.playerId != null ? playerColorById?.[p.playerId] : undefined,
             };
         }
     });
@@ -37,7 +38,17 @@ export function setupMatch({
             throw new Error("Invalid game state");
         }
 
-        const board = convertGameStateToBoard(game.match_piece);
+        // Build playerId -> color map from match_player
+        const playerColorById: Record<number, "white" | "black"> = {};
+        if (Array.isArray(game.match_player)) {
+            for (const mp of game.match_player) {
+                if (mp.userId != null) {
+                    playerColorById[mp.userId] = mp.color === "WHITE" ? "white" : "black";
+                }
+            }
+        }
+
+        const board = convertGameStateToBoard(game.match_piece, playerColorById);
         setBoard(board);
         setGameId(game.id);
     } catch (error) {

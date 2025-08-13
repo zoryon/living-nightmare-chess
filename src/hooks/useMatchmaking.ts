@@ -35,13 +35,17 @@ export function useMatchmaking() {
         if (!game) return console.log("Error: no game data");
         setState({ status: "starting", gameId: game.id });
 
+        // Create board
         setupMatch({ setBoard, setGameId, game});
-
         router.push(`/match/${game.id}`);
       });
 
-      s.on("match:resume", (game) => {
+      s.on("match:resume", (game: GameState) => {
+        if (!game) return;
         setState({ status: "resumed", gameId: game.id });
+
+        // Create board
+        setupMatch({ setBoard, setGameId, game });
         router.replace(`/match/${game.id}`);
       });
 
@@ -65,13 +69,14 @@ export function useMatchmaking() {
   }, [router]);
 
   const findMatch = useCallback(async () => {
-    // Simply connecting triggers queueing on the server.
     try {
       const s = await getSocket();
       if (!s.connected) await new Promise<void>((res, rej) => {
         s.once("connect", () => res());
         s.once("connect_error", rej);
       });
+      // Explicitly ask server to queue
+      s.emit("match:queue");
       setState({ status: "searching" });
     } catch (e: any) {
       setState({ status: "error", message: e?.message || "Connection failed" });
