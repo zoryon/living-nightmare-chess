@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-import { verifyAccessToken, verifyRefreshToken } from "@/lib/jwt-edge";
+import { verifyAccessToken } from "@/lib/jwt-edge";
 
 // Paths accessible only by NOT logged-in users (public pages)
 const PUBLIC_ONLY_PATHS = [
@@ -22,7 +22,8 @@ const OPEN_PATHS = [
 
 // Middleware
 export async function middleware(req: NextRequest) {
-    const { pathname } = req.nextUrl;
+    const { pathname, search } = req.nextUrl;
+    const method = req.method || "GET";
 
     // Allow open paths
     if (OPEN_PATHS.some(path => pathname.startsWith(path))) {
@@ -30,19 +31,27 @@ export async function middleware(req: NextRequest) {
     }
 
     const accessToken = req.cookies.get("access_token")?.value || "";
-    const refreshToken = req.cookies.get("refresh_token")?.value || "";
 
     const accessPayload: any = accessToken ? await verifyAccessToken(accessToken) : null;
     const isLoggedIn: boolean = !!accessPayload;
-    const hasRefreshToken: boolean = !!(refreshToken && await verifyRefreshToken(refreshToken));
 
     // Case 1: Logged in -> block login/register
-    if ((isLoggedIn || hasRefreshToken) && PUBLIC_ONLY_PATHS.some(path => pathname.startsWith(path))) {
+    if (isLoggedIn && PUBLIC_ONLY_PATHS.some(path => pathname.startsWith(path))) {
         return NextResponse.redirect(new URL("/", req.url));
     }
 
-    // Case 2: Not logged in and no refresh token → block protected routes
-    if (!isLoggedIn && !hasRefreshToken && !PUBLIC_ONLY_PATHS.some(path => pathname.startsWith(path))) {
+    // Case 2: Not logged in → try a server-side refresh via redirect so the
+    // path-scoped refresh cookie can be sent. Only for GET to avoid method issues.
+    if (!isLoggedIn && !PUBLIC_ONLY_PATHS.some(path => pathname.startsWith(path))) {
+        // Allow direct access to the refresh path family (cookie will be present there)
+        if (pathname.startsWith("/api/auth/refresh")) {
+            return NextResponse.next();
+        }
+        if (method === "GET") {
+            const next = encodeURIComponent(`${pathname}${search || ""}`);
+            return NextResponse.redirect(new URL(`/api/auth/refresh/redirect?next=${next}`, req.url));
+        }
+        // For non-GET, fall back to login
         return NextResponse.redirect(new URL("/login", req.url));
     }
 
@@ -53,12 +62,12 @@ export async function middleware(req: NextRequest) {
         const now = Math.floor(Date.now() / 1000);
         expiringSoon = accessPayload.exp - now <= 30; // 30s threshold
     }
-    return resWithTokenStatusHeader(isLoggedIn, hasRefreshToken, expiringSoon);
+    return resWithTokenStatusHeader(expiringSoon);
 }
 
-function resWithTokenStatusHeader(isLoggedIn: boolean, hasRefreshToken: boolean, expiringSoon = false) {
+function resWithTokenStatusHeader(expiringSoon = false) {
     const res = NextResponse.next();
-    if ((!isLoggedIn && hasRefreshToken) || expiringSoon) {
+    if (expiringSoon) {
         res.headers.set("x-token-status", "stale");
     }
     return res;
