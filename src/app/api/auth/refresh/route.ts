@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { setAccessTokenCookie } from "@/lib/jwt";
 import { verifyRefreshToken } from "@/lib/jwt-edge";
 
-export async function POST(request: Request) {
+export async function POST() {
     const cookieStore = await cookies();
     const token = cookieStore.get("refresh_token")?.value;
     if (!token) {
@@ -23,25 +23,21 @@ export async function POST(request: Request) {
         return new Response(JSON.stringify({ error: "missing_device_id" }), { status: 400 });
     }
 
-    // Check if the token exists, for this device, in the database
-    const stored = await prisma.refresh_token.findFirst({
-        where: {
-            token,
-            deviceId: deviceId!,
-            user: {
-                isEmailVerified: { not: null }
-            }
-        },
-        include: {
-            user: true
-        }
+    // Fast path: lookup by unique token only, verify fields in code
+    const stored = await prisma.refresh_token.findUnique({
+        where: { token },
+        select: { userId: true, deviceId: true, expiresAt: true },
     });
-    if (!stored || stored.expiresAt! < new Date()) {
+    if (
+        !stored ||
+        stored.expiresAt! < new Date() ||
+        Number(stored.deviceId) !== Number(deviceId)
+    ) {
         return new Response(JSON.stringify({ error: "invalid_refresh_token_device" }), { status: 401 });
     }
 
-    // Update device last seen
-    await prisma.device.update({ where: { id: deviceId! }, data: { lastSeenAt: new Date() } }).catch(() => {});
+    // Fire-and-forget: don't block response on this
+    prisma.device.update({ where: { id: deviceId! }, data: { lastSeenAt: new Date() } }).catch(() => {});
 
     await setAccessTokenCookie(stored.userId as number);
 

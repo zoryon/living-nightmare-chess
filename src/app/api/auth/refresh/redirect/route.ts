@@ -26,23 +26,24 @@ export async function GET(request: Request) {
             return NextResponse.redirect(new URL("/login", url));
         }
 
-        // Validate token/device in DB and expiry
-        const stored = await prisma.refresh_token.findFirst({
-            where: {
-                token,
-                deviceId: Number(payload.deviceId),
-                userId: Number(payload.userId),
-                user: { isEmailVerified: { not: null } },
-            },
-            include: { user: true },
+        // Validate token in DB by unique token only (fast path), then check fields in code
+        const stored = await prisma.refresh_token.findUnique({
+            where: { token },
+            select: { userId: true, deviceId: true, expiresAt: true },
         });
 
-        if (!stored || stored.expiresAt! < new Date()) {
+        if (
+            !stored ||
+            stored.expiresAt! < new Date() ||
+            Number(stored.deviceId) !== Number(payload.deviceId) ||
+            Number(stored.userId) !== Number(payload.userId)
+        ) {
             return NextResponse.redirect(new URL("/login", url));
         }
 
         // Touch device last seen (soft fail)
-        await prisma.device
+        // Fire-and-forget: don't block the response on this update
+        prisma.device
             .update({ where: { id: Number(payload.deviceId) }, data: { lastSeenAt: new Date() } })
             .catch(() => {});
 
