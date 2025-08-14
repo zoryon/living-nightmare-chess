@@ -1,1 +1,1 @@
-export { PIECES } from "@/constants/pieces-constants";
+export { PIECES, PIECE_IMAGES } from "@/constants/pieces-constants";

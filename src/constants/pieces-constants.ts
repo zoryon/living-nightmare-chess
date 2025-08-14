@@ -1,4 +1,4 @@
-import { PieceType } from "@/types";
+import { PieceImagesType, PieceType } from "@/types";
 
 export const PIECES: Record<string, PieceType> = {
     SLEEPLESS_EYE: {
@@ -114,5 +114,32 @@ export const PIECES: Record<string, PieceType> = {
             description: "When captured, the captor must declare its next intended move (if it plans to move that piece) at the start of its turn.",
             effect: (ctx) => { /* logic */ }
         }
+    },
+};
+
+export const PIECE_IMAGES: PieceImagesType = {
+    SLEEPLESS_EYE: {
+        white: "/pieces/sleepless-eye/white-sleepless-eye.png",
+        black: "/pieces/sleepless-eye/black-sleepless-eye.png",
+    },
+    PHANTOM_MATRIARCH: {
+        white: "/pieces/phantom-matriarch/white-phantom-matriarch.png",
+        black: "/pieces/phantom-matriarch/black-phantom-matriarch.png",
+    },
+    SHADOW_HUNTER: {
+        white: "/pieces/shadow-hunter/white-shadow-hunter.png",
+        black: "/pieces/shadow-hunter/black-shadow-hunter.png",
+    },
+    DOPPELGANGER: {
+        white: "/pieces/doppelganger/white-doppelganger.png",
+        black: "/pieces/doppelganger/black-doppelganger.png",
+    },
+    PHOBIC_LEAPER: {
+        white: "/pieces/phobic-leaper/white-phobic-leaper.png",
+        black: "/pieces/phobic-leaper/black-phobic-leaper.png",
+    },
+    PSYCHIC_LARVA: {
+        white: "/pieces/psychic-larva/white-psychic-larva.png",
+        black: "/pieces/psychic-larva/black-psychic-larva.png",
     },
 };

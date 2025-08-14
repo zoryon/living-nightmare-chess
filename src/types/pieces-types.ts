@@ -27,3 +27,8 @@ export type PieceInstance = {
 };
 
 export type Color = "white" | "black";
+
+export type PieceImagesType = Record<
+  string,
+  { white: string; black: string }
+>;
