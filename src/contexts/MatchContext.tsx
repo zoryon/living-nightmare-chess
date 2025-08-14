@@ -15,6 +15,14 @@ type MatchContextType = {
     setMyColor: (color: PlayerColor | null) => void;
     currentTurnColor: PlayerColor | null;
     setCurrentTurnColor: (color: PlayerColor | null) => void;
+    // Clocks in milliseconds as last received from server
+    whiteMs: number | null;
+    blackMs: number | null;
+    setWhiteMs: (ms: number | null) => void;
+    setBlackMs: (ms: number | null) => void;
+    // Timestamp when clocks were synced (Date.now())
+    clocksSyncedAt: number | null;
+    setClocksSyncedAt: (ts: number | null) => void;
     // Should add more match-related states (turn, players, status)
 };
 
@@ -26,9 +34,12 @@ export function MatchProvider({ children }: { children: React.ReactNode }) {
     const [myUserId, setMyUserId] = useState<number | null>(null);
     const [myColor, setMyColor] = useState<PlayerColor | null>(null);
     const [currentTurnColor, setCurrentTurnColor] = useState<PlayerColor | null>(null);
+    const [whiteMs, setWhiteMs] = useState<number | null>(null);
+    const [blackMs, setBlackMs] = useState<number | null>(null);
+    const [clocksSyncedAt, setClocksSyncedAt] = useState<number | null>(null);
 
     return (
-        <MatchContext.Provider value={{ board, setBoard, gameId, setGameId, myUserId, setMyUserId, myColor, setMyColor, currentTurnColor, setCurrentTurnColor }}>
+        <MatchContext.Provider value={{ board, setBoard, gameId, setGameId, myUserId, setMyUserId, myColor, setMyColor, currentTurnColor, setCurrentTurnColor, whiteMs, blackMs, setWhiteMs, setBlackMs, clocksSyncedAt, setClocksSyncedAt }}>
             {children}
         </MatchContext.Provider>
     );

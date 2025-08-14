@@ -13,7 +13,7 @@ import type { GameState } from "@/types";
  * Connects to the WS server, requests current state, and listens for updates.
  */
 export function useMatchHydration(matchId: number) {
-    const { setBoard, setGameId, setMyUserId, setMyColor, setCurrentTurnColor } = useMatch();
+    const { setBoard, setGameId, setMyUserId, setMyColor, setCurrentTurnColor, setWhiteMs, setBlackMs, setClocksSyncedAt } = useMatch();
     const socketRef = useRef<Socket | null>(null);
 
     useEffect(() => {
@@ -54,6 +54,11 @@ export function useMatchHydration(matchId: number) {
                     if (m && typeof m.turn === "number") {
                         setCurrentTurnColor(m.turn % 2 === 1 ? "white" : "black");
                     }
+                    if (payload?.clocks && typeof payload.clocks.whiteMs === "number" && typeof payload.clocks.blackMs === "number") {
+                        setWhiteMs(payload.clocks.whiteMs);
+                        setBlackMs(payload.clocks.blackMs);
+                        setClocksSyncedAt(Date.now());
+                    }
                 };
                 s.on("match:update", onUpdate);
 
@@ -65,6 +70,11 @@ export function useMatchHydration(matchId: number) {
                         const m = res.match as GameState;
                         if (m && typeof (m as any).turn === "number") {
                             setCurrentTurnColor((m as any).turn % 2 === 1 ? "white" : "black");
+                        }
+                        if (res?.clocks && typeof res.clocks.whiteMs === "number" && typeof res.clocks.blackMs === "number") {
+                            setWhiteMs(res.clocks.whiteMs);
+                            setBlackMs(res.clocks.blackMs);
+                            setClocksSyncedAt(Date.now());
                         }
                     }
                 });
@@ -82,5 +92,5 @@ export function useMatchHydration(matchId: number) {
                 s.off("match:update");
             }
         };
-    }, [matchId, setBoard, setGameId, setMyUserId, setMyColor, setCurrentTurnColor]);
+    }, [matchId, setBoard, setGameId, setMyUserId, setMyColor, setCurrentTurnColor, setWhiteMs, setBlackMs, setClocksSyncedAt]);
 }

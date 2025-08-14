@@ -14,7 +14,7 @@ export function useMatchmaking() {
   const socketRef = useRef<Socket | null>(null);
   const router = useRouter();
 
-  const { setBoard, setGameId, setMyUserId, setMyColor, setCurrentTurnColor } = useMatch();
+  const { setBoard, setGameId, setMyUserId, setMyColor, setCurrentTurnColor, setWhiteMs, setBlackMs, setClocksSyncedAt } = useMatch();
   // Prevent double navigations if multiple events arrive (start/update/resume)
   const navigatedRef = useRef(false);
 
@@ -33,13 +33,14 @@ export function useMatchmaking() {
         setState({ status: "searching" });
       });
 
-      s.on("match:start", (game: GameState) => {
+  s.on("match:start", (game: GameState) => {
         if (!game) return console.log("Error: no game data");
         setState({ status: "starting", gameId: game.id });
 
         // Create board
         setupMatch({ setBoard, setGameId, game});
-        if (typeof (game as any).turn === "number") setCurrentTurnColor((game as any).turn % 2 === 1 ? "white" : "black");
+  if (typeof (game as any).turn === "number") setCurrentTurnColor((game as any).turn % 2 === 1 ? "white" : "black");
+  // If server attached clocks on start via a preceding match:update, they will be set by hydration; as a fallback, we can request state after navigating.
         fetch("/api/me", { method: "GET", credentials: "include" })
           .then(r => r.json())
           .then((data) => {
@@ -56,13 +57,13 @@ export function useMatchmaking() {
         }
       });
 
-      s.on("match:resume", (game: GameState) => {
+  s.on("match:resume", (game: GameState) => {
         if (!game) return;
         setState({ status: "resumed", gameId: game.id });
 
         // Create board
         setupMatch({ setBoard, setGameId, game });
-        if (typeof (game as any).turn === "number") setCurrentTurnColor((game as any).turn % 2 === 1 ? "white" : "black");
+  if (typeof (game as any).turn === "number") setCurrentTurnColor((game as any).turn % 2 === 1 ? "white" : "black");
         fetch("/api/me", { method: "GET", credentials: "include" })
           .then(r => r.json())
           .then((data) => {
@@ -84,6 +85,11 @@ export function useMatchmaking() {
         const m = payload?.match;
         if (!m) return;
         if (typeof m.turn === "number") setCurrentTurnColor(m.turn % 2 === 1 ? "white" : "black");
+        if (payload?.clocks && typeof payload.clocks.whiteMs === "number" && typeof payload.clocks.blackMs === "number") {
+          setWhiteMs(payload.clocks.whiteMs);
+          setBlackMs(payload.clocks.blackMs);
+          setClocksSyncedAt(Date.now());
+        }
         // Fallback: if we missed match:start, navigate on first full-state update
         if (!navigatedRef.current && typeof m.id === "number") {
           navigatedRef.current = true;
