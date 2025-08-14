@@ -27,11 +27,15 @@ export function convertGameStateToBoard(gameState: match_piece[], playerColorByI
 export function setupMatch({ 
     setBoard, 
     setGameId, 
-    game
+    game,
+    setMyUserId,
+    setMyColor,
 }: { 
     setBoard: (board: (BoardCell | null)[][]) => void, 
     setGameId: (id: number | null) => void, 
-    game: GameState
+    game: GameState,
+    setMyUserId?: (id: number | null) => void,
+    setMyColor?: (color: "white" | "black" | null) => void,
 }) {
     try {
         if (!game || !game.match_piece) {
@@ -40,10 +44,14 @@ export function setupMatch({
 
         // Build playerId -> color map from match_player
         const playerColorById: Record<number, "white" | "black"> = {};
+        let myUserId: number | null = null;
+        let myColor: "white" | "black" | null = null;
         if (Array.isArray(game.match_player)) {
             for (const mp of game.match_player) {
                 if (mp.userId != null) {
                     playerColorById[mp.userId] = mp.color === "WHITE" ? "white" : "black";
+                    // Heuristic: assume "me" is the non-null userId in this session; precise value set by caller later
+                    // Leave as is; callers that know current user can set setMyUserId directly.
                 }
             }
         }
@@ -51,6 +59,14 @@ export function setupMatch({
         const board = convertGameStateToBoard(game.match_piece, playerColorById);
         setBoard(board);
         setGameId(game.id);
+
+        // Allow caller to set myUserId/myColor if known via token; otherwise try to infer if only one player exists
+        if (setMyUserId && setMyColor) {
+            // If exactly one player, we cannot know which is me; leave null.
+            // Callers will fill from access token.
+            setMyUserId(myUserId);
+            setMyColor(myColor);
+        }
     } catch (error) {
         console.error("Error setting up match:", error);
     }

@@ -14,7 +14,9 @@ export function useMatchmaking() {
   const socketRef = useRef<Socket | null>(null);
   const router = useRouter();
 
-  const { setBoard, setGameId } = useMatch();
+  const { setBoard, setGameId, setMyUserId, setMyColor, setCurrentTurnColor } = useMatch();
+  // Prevent double navigations if multiple events arrive (start/update/resume)
+  const navigatedRef = useRef(false);
 
   useEffect(() => {
     let mounted = true;
@@ -37,7 +39,21 @@ export function useMatchmaking() {
 
         // Create board
         setupMatch({ setBoard, setGameId, game});
-        router.push(`/match/${game.id}`);
+        if (typeof (game as any).turn === "number") setCurrentTurnColor((game as any).turn % 2 === 1 ? "white" : "black");
+        fetch("/api/me", { method: "GET", credentials: "include" })
+          .then(r => r.json())
+          .then((data) => {
+            const uid: number | undefined = data?.publicUser?.id;
+            if (typeof uid === "number") {
+              setMyUserId(uid);
+              const mp = game.match_player?.find(p => p.userId === uid);
+              if (mp) setMyColor(mp.color === "WHITE" ? "white" : "black");
+            }
+          }).catch(() => {});
+        if (!navigatedRef.current) {
+          navigatedRef.current = true;
+          router.push(`/match/${game.id}`);
+        }
       });
 
       s.on("match:resume", (game: GameState) => {
@@ -46,7 +62,33 @@ export function useMatchmaking() {
 
         // Create board
         setupMatch({ setBoard, setGameId, game });
-        router.replace(`/match/${game.id}`);
+        if (typeof (game as any).turn === "number") setCurrentTurnColor((game as any).turn % 2 === 1 ? "white" : "black");
+        fetch("/api/me", { method: "GET", credentials: "include" })
+          .then(r => r.json())
+          .then((data) => {
+            const uid: number | undefined = data?.publicUser?.id;
+            if (typeof uid === "number") {
+              setMyUserId(uid);
+              const mp = game.match_player?.find(p => p.userId === uid);
+              if (mp) setMyColor(mp.color === "WHITE" ? "white" : "black");
+            }
+          }).catch(() => {});
+        if (!navigatedRef.current) {
+          navigatedRef.current = true;
+          router.replace(`/match/${game.id}`);
+        }
+      });
+
+      // Also react to later updates while on this page
+      s.on("match:update", (payload: any) => {
+        const m = payload?.match;
+        if (!m) return;
+        if (typeof m.turn === "number") setCurrentTurnColor(m.turn % 2 === 1 ? "white" : "black");
+        // Fallback: if we missed match:start, navigate on first full-state update
+        if (!navigatedRef.current && typeof m.id === "number") {
+          navigatedRef.current = true;
+          router.replace(`/match/${m.id}`);
+        }
       });
 
       s.on("error:match_not_found", () => {
@@ -62,8 +104,9 @@ export function useMatchmaking() {
         s.off("match:searching");
         s.off("match:start");
         s.off("match:resume");
-        s.off("error:match_not_found");
+  s.off("error:match_not_found");
         s.off("error:opponent_disconnected");
+  s.off("match:update");
       }
     };
   }, [router]);
