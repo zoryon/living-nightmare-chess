@@ -11,13 +11,15 @@ export const PIECES: Record<string, PieceType> = {
             cost: 2,
             maxUses: 2,
             description: "Force an enemy piece 1 square away (no obstacles, not check)",
-            effect: (ctx) => { /* logic */ }
+            // Note: effect is implemented in engine/abilities.ts; this object is used for UI/metadata only.
+            effect: () => {}
         },
         passiveAbility: {
             name: "Field of Fear",
             trigger: "passive",
             description: "Enemy pieces adjacent cannot use active abilities",
-            effect: (ctx) => { /* logic */ }
+            // Enforced in engine/abilities.ts: adjacent enemies cannot activate abilities (radius doubles in Chaos)
+            effect: () => {}
         }
     },
     PHANTOM_MATRIARCH: {
@@ -30,13 +32,15 @@ export const PIECES: Record<string, PieceType> = {
             cost: 5,
             maxUses: 2,
             description: "Move on a legal square ignoring all pieces (cannot capture nor check the Sleepless Eye)",
-            effect: (ctx) => { /* logic */ }
+            // Implemented in engine/abilities.ts
+            effect: () => {}
         },
         passiveAbility: {
             name: "Funeral Wail",
             trigger: "passive",
-            description: "Captor loses 1 Dream Energy at the start of its turn for 3 turns",
-            effect: (ctx) => { /* logic */ }
+                description: "On capture, captor loses 1 Dream Energy at the start of its turn for 3 turns",
+            // Implemented via wailDrainRemaining status + per-turn drain in engine/tx-helpers.ts
+            effect: () => {}
         }
     },
     SHADOW_HUNTER: {
@@ -49,13 +53,15 @@ export const PIECES: Record<string, PieceType> = {
             cost: 3,
             maxUses: 1,
             description: "Targets an enemy piece on an adjacent diagonal square. That piece cannot move on the opponent's next turn.",
-            effect: (ctx) => { /* logic */ }
+            // Implemented in engine/abilities.ts
+            effect: () => {}
         },
         passiveAbility: {
             name: "Camouflage",
             trigger: "passive",
             description: "If not moved, it cannot be captured on the opponent's next turn",
-            effect: (ctx) => { /* logic */ }
+            // Implemented in engine/validator.ts: set camouflagedUntilTurn for idle Hunters
+            effect: () => {}
         }
     },
     DOPPELGANGER: {
@@ -68,13 +74,15 @@ export const PIECES: Record<string, PieceType> = {
             cost: 2,
             maxUses: 4,
             description: "Copy the default movement of an adjacent piece (excluding the King), for one turn",
-            effect: (ctx) => { /* logic */ }
+            // Implemented in engine/abilities.ts
+            effect: () => {}
         },
         passiveAbility: {
             name: "Unstable Form",
             trigger: "passive",
-            description: "After capturing, must immediately move 1 additional legal square if possible",
-            effect: (ctx) => { /* logic */ }
+            description: "If possible, immediately move 1 additional legal square (cannot capture the enemy's sleepless eye)",
+            // Implemented in engine/validator.ts: require an immediate extra step after
+            effect: () => {}
         }
     },
     PHOBIC_LEAPER: {
@@ -87,13 +95,15 @@ export const PIECES: Record<string, PieceType> = {
             cost: 3,
             maxUses: 4,
             description: "Make a long jump in an L-shape of 3x2 squares",
-            effect: (ctx) => { /* logic */ }
+            // Implemented in engine/abilities.ts
+            effect: () => {}
         },
         passiveAbility: {
             name: "Fearful Terrain",
             trigger: "passive",
             description: "Squares the Leaper attacks are 'uneasy'. If a sliding piece starts inside the Leaper's attack range and moves through an uneasy square to exit that range, it must spend 1 Dream Energy to complete the move.",
-            effect: (ctx) => { /* logic */ }
+            // Implemented in engine/validator.ts: sliding movers pay 1 DE when exiting enemy Leaper range through an uneasy square; blocked if insufficient DE
+            effect: () => {}
         }
     },
     PSYCHIC_LARVA: {
@@ -106,13 +116,15 @@ export const PIECES: Record<string, PieceType> = {
             cost: 1,
             maxUses: 1,
             description: "When capturing, enemy pieces adjacent to the captured piece cannot move next turn",
-            effect: (ctx) => { /* logic */ }
+            // Implemented in engine/abilities.ts and enforced on capture in engine/validator.ts
+            effect: () => {}
         },
         passiveAbility: {
-            name: "Psychic Gateway",
+            name: "Mental Echo",
             trigger: "passive",
-            description: "When two Larvas are aligned diagonally with exactly one empty square between them, that square becomes a 'psychic gateway'. Any friendly piece moving into it may immediately move again as if it had just started its turn.",
-            effect: (ctx) => { /* logic */ }
+            description: "When captured, the captor must declare its next intended move (if it plans to move that piece) at the start of its turn.",
+            // Implemented across engine/validator.ts and socket in game.ts via echo:declare
+            effect: () => {}
         }
     },
 };

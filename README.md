@@ -23,7 +23,7 @@ Each player starts the game with **10 Dream Energy (DE) points**.
 - **Usage:** Activating a piece’s **Special Active Ability** consumes DE, as specified in its description. If a player does not have enough DE, the ability cannot be used.
 - **Recovery:** A player regains Dream Energy in the following ways:
   - **+2 DE** when one of their pieces captures an enemy piece.
-  - **+1 DE** if, instead of moving, the player chooses to **"Meditate"**, skipping their movement turn. A player cannot meditate while in check.
+  - **+8 DE** if, instead of moving, the player chooses to **"Meditate"**, skipping their movement turn. A player cannot meditate while in check.
 
 ### 2. Nightmare Phases
 
@@ -48,8 +48,8 @@ Each phase introduces a new global rule that stacks with the previous ones.
 When a **Psychic Larva** (Pawn) reaches the 8th rank, it is not promoted to a standard piece.  
 Instead, the player may choose one of the following:
 
-1. **Summon a Nightmare:** Remove the Larva and return a *Living Nightmare* piece (Matriarch, Hunter, Doppelgänger, or Leaper) to the promotion square.
-2. **Infestation:** Remove the Larva and place **two new Psychic Larvae** on any two empty squares of the player's starting row.
+1. **Summon a Nightmare:** Remove the Larva and return a captured *Living Nightmare* piece (Banshee, Hunter, Doppelgänger, or Leaper) to the promotion square.
+2. **Infestation:** Remove the Larva and place **three new Psychic Larvae** on any two empty squares of the player's starting row.
 
 ---
 
