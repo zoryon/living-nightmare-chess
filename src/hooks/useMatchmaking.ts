@@ -14,7 +14,7 @@ export function useMatchmaking() {
   const socketRef = useRef<Socket | null>(null);
   const router = useRouter();
 
-  const { setBoard, setGameId, setMyUserId, setMyColor, setCurrentTurnColor, setWhiteMs, setBlackMs, setClocksSyncedAt } = useMatch();
+  const { setBoard, setGameId, setMyUserId, setMyColor, setCurrentTurnColor, setWhiteMs, setBlackMs, setClocksSyncedAt, setFinished, setWinnerId, setFinishReason, setHydrated } = useMatch();
   // Prevent double navigations if multiple events arrive (start/update/resume)
   const navigatedRef = useRef(false);
 
@@ -33,14 +33,19 @@ export function useMatchmaking() {
         setState({ status: "searching" });
       });
 
-  s.on("match:start", (game: GameState) => {
+      s.on("match:start", (game: GameState) => {
         if (!game) return console.log("Error: no game data");
         setState({ status: "starting", gameId: game.id });
+  // Reset any previous finished state just in case
+  setHydrated(false);
+        setFinished(false);
+        setWinnerId(null);
+        setFinishReason(null);
 
         // Create board
-        setupMatch({ setBoard, setGameId, game});
-  if (typeof (game as any).turn === "number") setCurrentTurnColor((game as any).turn % 2 === 1 ? "white" : "black");
-  // If server attached clocks on start via a preceding match:update, they will be set by hydration; as a fallback, we can request state after navigating.
+        setupMatch({ setBoard, setGameId, game });
+        if (typeof (game as any).turn === "number") setCurrentTurnColor((game as any).turn % 2 === 1 ? "white" : "black");
+        // If server attached clocks on start via a preceding match:update, they will be set by hydration; as a fallback, we can request state after navigating.
         fetch("/api/me", { method: "GET", credentials: "include" })
           .then(r => r.json())
           .then((data) => {
@@ -50,20 +55,25 @@ export function useMatchmaking() {
               const mp = game.match_player?.find(p => p.userId === uid);
               if (mp) setMyColor(mp.color === "WHITE" ? "white" : "black");
             }
-          }).catch(() => {});
+          }).catch(() => { });
         if (!navigatedRef.current) {
           navigatedRef.current = true;
           router.push(`/match/${game.id}`);
         }
       });
 
-  s.on("match:resume", (game: GameState) => {
+      s.on("match:resume", (game: GameState) => {
         if (!game) return;
         setState({ status: "resumed", gameId: game.id });
+  // Reset previous finish state on resume of an ongoing match
+  setHydrated(false);
+        setFinished(false);
+        setWinnerId(null);
+        setFinishReason(null);
 
         // Create board
         setupMatch({ setBoard, setGameId, game });
-  if (typeof (game as any).turn === "number") setCurrentTurnColor((game as any).turn % 2 === 1 ? "white" : "black");
+        if (typeof (game as any).turn === "number") setCurrentTurnColor((game as any).turn % 2 === 1 ? "white" : "black");
         fetch("/api/me", { method: "GET", credentials: "include" })
           .then(r => r.json())
           .then((data) => {
@@ -73,7 +83,7 @@ export function useMatchmaking() {
               const mp = game.match_player?.find(p => p.userId === uid);
               if (mp) setMyColor(mp.color === "WHITE" ? "white" : "black");
             }
-          }).catch(() => {});
+          }).catch(() => { });
         if (!navigatedRef.current) {
           navigatedRef.current = true;
           router.replace(`/match/${game.id}`);
@@ -92,6 +102,11 @@ export function useMatchmaking() {
         }
         // Fallback: if we missed match:start, navigate on first full-state update
         if (!navigatedRef.current && typeof m.id === "number") {
+          // Ensure any previous finished overlay is cleared before navigation
+          setHydrated(false);
+          setFinished(false);
+          setWinnerId(null);
+          setFinishReason(null);
           navigatedRef.current = true;
           router.replace(`/match/${m.id}`);
         }
@@ -110,9 +125,9 @@ export function useMatchmaking() {
         s.off("match:searching");
         s.off("match:start");
         s.off("match:resume");
-  s.off("error:match_not_found");
+        s.off("error:match_not_found");
         s.off("error:opponent_disconnected");
-  s.off("match:update");
+        s.off("match:update");
       }
     };
   }, [router]);

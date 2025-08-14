@@ -13,10 +13,12 @@ import type { GameState } from "@/types";
  * Connects to the WS server, requests current state, and listens for updates.
  */
 export function useMatchHydration(matchId: number) {
-    const { setBoard, setGameId, setMyUserId, setMyColor, setCurrentTurnColor, setWhiteMs, setBlackMs, setClocksSyncedAt } = useMatch();
+    const { setBoard, setGameId, setMyUserId, setMyColor, setCurrentTurnColor, setWhiteMs, setBlackMs, setClocksSyncedAt, setFinished, setWinnerId, setFinishReason, setHydrated } = useMatch();
     const socketRef = useRef<Socket | null>(null);
 
     useEffect(() => {
+    // Reset hydration flag on entry
+    setHydrated(false);
         let mounted = true;
 
         (async () => {
@@ -59,12 +61,20 @@ export function useMatchHydration(matchId: number) {
                         setBlackMs(payload.clocks.blackMs);
                         setClocksSyncedAt(Date.now());
                     }
+                    // If we get an update for this match, consider hydrated
+                    setHydrated(true);
                 };
                 s.on("match:update", onUpdate);
+                s.on("match:finished", (payload: { matchId?: number; winnerId: number | null; reason: string }) => {
+                    if (typeof payload?.matchId === "number" && payload.matchId !== matchId) return;
+                    setFinished(true);
+                    setWinnerId(payload?.winnerId ?? null);
+                    setFinishReason(payload?.reason ?? null);
+                });
 
                 // Immediately request current state from the game handler
                 // (handler is auto-deployed for user's ongoing match on connect)
-                s.emit("match:state:request", {}, (res: any) => {
+        s.emit("match:state:request", {}, (res: any) => {
                     if (res?.ok) {
                         applyIfThisMatch(res.match as GameState);
                         const m = res.match as GameState;
@@ -76,6 +86,16 @@ export function useMatchHydration(matchId: number) {
                             setBlackMs(res.clocks.blackMs);
                             setClocksSyncedAt(Date.now());
                         }
+                        if ((m as any)?.status === "FINISHED") {
+                            setFinished(true);
+                            setWinnerId((m as any)?.winnerId ?? null);
+                            setFinishReason("finished");
+                        } else {
+                            setFinished(false);
+                            setWinnerId(null);
+                            setFinishReason(null);
+                        }
+            setHydrated(true);
                     }
                 });
             } catch (e) {
@@ -90,7 +110,8 @@ export function useMatchHydration(matchId: number) {
             if (s) {
                 s.off("match:resume");
                 s.off("match:update");
+                s.off("match:finished");
             }
         };
-    }, [matchId, setBoard, setGameId, setMyUserId, setMyColor, setCurrentTurnColor, setWhiteMs, setBlackMs, setClocksSyncedAt]);
+    }, [matchId, setBoard, setGameId, setMyUserId, setMyColor, setCurrentTurnColor, setWhiteMs, setBlackMs, setClocksSyncedAt, setFinished, setWinnerId, setFinishReason]);
 }

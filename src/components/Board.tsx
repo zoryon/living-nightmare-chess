@@ -7,7 +7,7 @@ import { getSocket } from "@/lib/socket";
 
 const Board = ({ board }: { board: BoardType | null }) => {
     const [isVisible, setIsVisible] = useState(false);
-    const { myColor, currentTurnColor, setCurrentTurnColor, setBoard: setBoardCtx, whiteMs, blackMs, setWhiteMs, setBlackMs, clocksSyncedAt, setClocksSyncedAt } = useMatch();
+    const { myColor, currentTurnColor, finished, setCurrentTurnColor, setBoard: setBoardCtx, whiteMs, blackMs, setWhiteMs, setBlackMs, clocksSyncedAt, setClocksSyncedAt } = useMatch();
     const [selected, setSelected] = useState<{ x: number; y: number; pieceId: number } | null>(null);
     const [lastError, setLastError] = useState<string | null>(null);
     const [hints, setHints] = useState<Array<{ x: number; y: number }>>([]);
@@ -30,7 +30,8 @@ const Board = ({ board }: { board: BoardType | null }) => {
     }, [board, myColor]);
 
     const attemptMove = useCallback(async (from: { x: number; y: number; pieceId: number }, to: { x: number; y: number }) => {
-        if (!myColor) return; // color unknown, avoid sending
+    if (!myColor) return; // color unknown, avoid sending
+    if (finished) return; // no moves after finish
         if (pendingMove) return; // prevent concurrent optimistic moves
         if (currentTurnColor !== myColor) {
             setLastError("not_your_turn");
@@ -228,6 +229,7 @@ const Board = ({ board }: { board: BoardType | null }) => {
                                         ${cell && isMine ? "cursor-pointer" : "cursor-default"}
                                         transition-colors duration-150`}
                                             onClick={() => {
+                                                if (finished) return;
                                                 if (pendingMove) return; // block interactions while a move is pending
                                                 // Allow selection only of my pieces
                                                 if (!myColor) return;
@@ -252,6 +254,7 @@ const Board = ({ board }: { board: BoardType | null }) => {
                                             }}
                                             onDrop={(e) => {
                                                 e.preventDefault();
+                                                if (finished) return;
                                                 if (pendingMove) return;
                                                 if (!selected) return;
                                                 attemptMove({ x: selected.x, y: selected.y, pieceId: selected.pieceId }, { x: actualColIdx, y: actualRowIdx });

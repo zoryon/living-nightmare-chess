@@ -23,6 +23,16 @@ type MatchContextType = {
     // Timestamp when clocks were synced (Date.now())
     clocksSyncedAt: number | null;
     setClocksSyncedAt: (ts: number | null) => void;
+    // Match end state
+    finished: boolean;
+    setFinished: (v: boolean) => void;
+    winnerId: number | null;
+    setWinnerId: (id: number | null) => void;
+    finishReason: string | null;
+    setFinishReason: (r: string | null) => void;
+    // Whether the current match view has been hydrated with server state
+    hydrated: boolean;
+    setHydrated: (v: boolean) => void;
     // Should add more match-related states (turn, players, status)
 };
 
@@ -37,9 +47,13 @@ export function MatchProvider({ children }: { children: React.ReactNode }) {
     const [whiteMs, setWhiteMs] = useState<number | null>(null);
     const [blackMs, setBlackMs] = useState<number | null>(null);
     const [clocksSyncedAt, setClocksSyncedAt] = useState<number | null>(null);
+    const [finished, setFinished] = useState<boolean>(false);
+    const [winnerId, setWinnerId] = useState<number | null>(null);
+    const [finishReason, setFinishReason] = useState<string | null>(null);
+    const [hydrated, setHydrated] = useState<boolean>(false);
 
     return (
-        <MatchContext.Provider value={{ board, setBoard, gameId, setGameId, myUserId, setMyUserId, myColor, setMyColor, currentTurnColor, setCurrentTurnColor, whiteMs, blackMs, setWhiteMs, setBlackMs, clocksSyncedAt, setClocksSyncedAt }}>
+        <MatchContext.Provider value={{ board, setBoard, gameId, setGameId, myUserId, setMyUserId, myColor, setMyColor, currentTurnColor, setCurrentTurnColor, whiteMs, blackMs, setWhiteMs, setBlackMs, clocksSyncedAt, setClocksSyncedAt, finished, setFinished, winnerId, setWinnerId, finishReason, setFinishReason, hydrated, setHydrated }}>
             {children}
         </MatchContext.Provider>
     );
