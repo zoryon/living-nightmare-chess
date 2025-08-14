@@ -17,8 +17,8 @@ export function useMatchHydration(matchId: number) {
     const socketRef = useRef<Socket | null>(null);
 
     useEffect(() => {
-    // Reset hydration flag on entry
-    setHydrated(false);
+        // Reset hydration flag on entry
+        setHydrated(false);
         let mounted = true;
 
         (async () => {
@@ -74,7 +74,7 @@ export function useMatchHydration(matchId: number) {
 
                 // Immediately request current state from the game handler
                 // (handler is auto-deployed for user's ongoing match on connect)
-        s.emit("match:state:request", {}, (res: any) => {
+                s.emit("match:state:request", {}, (res: any) => {
                     if (res?.ok) {
                         applyIfThisMatch(res.match as GameState);
                         const m = res.match as GameState;
@@ -95,7 +95,7 @@ export function useMatchHydration(matchId: number) {
                             setWinnerId(null);
                             setFinishReason(null);
                         }
-            setHydrated(true);
+                        setHydrated(true);
                     }
                 });
             } catch (e) {

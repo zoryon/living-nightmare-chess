@@ -35,7 +35,7 @@ export const PIECES: Record<string, PieceType> = {
         passiveAbility: {
             name: "Funeral Wail",
             trigger: "passive",
-            description: "On capture, captor can move only 1 square for 2 turns",
+            description: "Captor loses 1 Dream Energy at the start of its turn for 3 turns",
             effect: (ctx) => { /* logic */ }
         }
     },
@@ -90,9 +90,9 @@ export const PIECES: Record<string, PieceType> = {
             effect: (ctx) => { /* logic */ }
         },
         passiveAbility: {
-            name: "Mind Parasite",
+            name: "Fearful Terrain",
             trigger: "passive",
-            description: "Enemy pieces within attack range have their maximum movement reduced by 1 square",
+            description: "Squares the Leaper attacks are 'uneasy'. If a sliding piece starts inside the Leaper's attack range and moves through an uneasy square to exit that range, it must spend 1 Dream Energy to complete the move.",
             effect: (ctx) => { /* logic */ }
         }
     },

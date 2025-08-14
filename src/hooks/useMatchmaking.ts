@@ -36,8 +36,8 @@ export function useMatchmaking() {
       s.on("match:start", (game: GameState) => {
         if (!game) return console.log("Error: no game data");
         setState({ status: "starting", gameId: game.id });
-  // Reset any previous finished state just in case
-  setHydrated(false);
+        // Reset any previous finished state just in case
+        setHydrated(false);
         setFinished(false);
         setWinnerId(null);
         setFinishReason(null);
@@ -65,8 +65,8 @@ export function useMatchmaking() {
       s.on("match:resume", (game: GameState) => {
         if (!game) return;
         setState({ status: "resumed", gameId: game.id });
-  // Reset previous finish state on resume of an ongoing match
-  setHydrated(false);
+        // Reset previous finish state on resume of an ongoing match
+        setHydrated(false);
         setFinished(false);
         setWinnerId(null);
         setFinishReason(null);
