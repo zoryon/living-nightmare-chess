@@ -1,6 +1,7 @@
+import { cookies } from "next/headers";
+
 import { verifyAccessToken } from "@/lib/jwt-edge";
 import { prisma } from "@/lib/prisma";
-import { cookies } from "next/headers";
 
 export default async function MatchLayout({
     children,

@@ -34,3 +34,19 @@ export type GameState = ({
   winnerId: number | null;
   turn: number;
 }) | null
+
+export type MatchPiece = {
+  id: number;
+  playerId: number | null;
+  type: string; // Cambiato da pieceType per coerenza con il backend
+  status?: Record<string, any> | null;
+};
+
+export type Match = {
+  id: number;
+  turn: number;
+  status: string;
+  match_player: Array<{ id: number; userId: number | null; color: "WHITE" | "BLACK" }>;
+  pieces: MatchPiece[]; // Cambiato da match_piece per coerenza con il context
+  [k: string]: any;
+};
