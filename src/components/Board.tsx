@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { PIECE_IMAGES } from "@/constants";
 import { BoardCell, BoardType, PieceImagesType } from "@/types";
@@ -7,10 +7,13 @@ import { getSocket } from "@/lib/socket";
 
 const Board = ({ board }: { board: BoardType | null }) => {
     const [isVisible, setIsVisible] = useState(false);
-    const { myColor, currentTurnColor } = useMatch();
+    const { myColor, currentTurnColor, setCurrentTurnColor, setBoard: setBoardCtx, whiteMs, blackMs, setWhiteMs, setBlackMs, clocksSyncedAt, setClocksSyncedAt } = useMatch();
     const [selected, setSelected] = useState<{ x: number; y: number; pieceId: number } | null>(null);
     const [lastError, setLastError] = useState<string | null>(null);
     const [hints, setHints] = useState<Array<{ x: number; y: number }>>([]);
+    const [pendingMove, setPendingMove] = useState(false);
+    const boardSnapshotRef = useRef<BoardType | null>(null);
+    const clocksSnapshotRef = useRef<{ whiteMs: number | null; blackMs: number | null; clocksSyncedAt: number | null; turnColor: "white" | "black" | null } | null>(null);
 
     useEffect(() => {
         setIsVisible(true);
@@ -28,12 +31,65 @@ const Board = ({ board }: { board: BoardType | null }) => {
 
     const attemptMove = useCallback(async (from: { x: number; y: number; pieceId: number }, to: { x: number; y: number }) => {
         if (!myColor) return; // color unknown, avoid sending
+        if (pendingMove) return; // prevent concurrent optimistic moves
+        if (currentTurnColor !== myColor) {
+            setLastError("not_your_turn");
+            return;
+        }
+        if (!board) return;
+
+        // Snapshot board and clocks/turn before optimistic change
+        const prevBoard: BoardType = board.map(row => (row ? row.slice() : row)) as BoardType;
+        boardSnapshotRef.current = prevBoard;
+        clocksSnapshotRef.current = { whiteMs, blackMs, clocksSyncedAt, turnColor: currentTurnColor };
+
+        // Apply optimistic board update
+        const nextBoard: BoardType = board.map(row => (row ? row.slice() : row)) as BoardType;
+        const moving = nextBoard[from.y]?.[from.x] || null;
+        if (!moving) return; // should not happen
+        // Place piece at destination and clear source
+        if (!nextBoard[to.y]) return;
+        nextBoard[to.y][to.x] = moving;
+        nextBoard[from.y][from.x] = null;
+        setBoardCtx(nextBoard);
+        // Hide selection and hints immediately during optimistic phase
+        setSelected(null);
+        setHints([]);
+
+        // Apply optimistic clock change: commit elapsed for myColor and hand turn to opponent
+        try {
+            const now = Date.now();
+            const elapsed = clocksSyncedAt != null ? Math.max(0, now - clocksSyncedAt) : 0;
+            if (myColor === "white") {
+                const newWhite = (whiteMs ?? 0) - elapsed;
+                setWhiteMs(Math.max(0, newWhite));
+                setBlackMs(blackMs ?? null);
+            } else {
+                const newBlack = (blackMs ?? 0) - elapsed;
+                setBlackMs(Math.max(0, newBlack));
+                setWhiteMs(whiteMs ?? null);
+            }
+            setClocksSyncedAt(now);
+            setCurrentTurnColor(myColor === "white" ? "black" : "white");
+        } catch { }
+
+        setPendingMove(true);
         try {
             const s = await getSocket();
             await new Promise<void>((resolve) => {
                 s.emit("move:attempt", { pieceId: from.pieceId, from: { x: from.x, y: from.y }, to }, (ack: any) => {
                     if (!ack?.ok) {
                         setLastError(ack?.error || "illegal_move");
+                        // Revert optimistic state
+                        const prevB = boardSnapshotRef.current;
+                        const prevC = clocksSnapshotRef.current;
+                        if (prevB) setBoardCtx(prevB);
+                        if (prevC) {
+                            setWhiteMs(prevC.whiteMs ?? null);
+                            setBlackMs(prevC.blackMs ?? null);
+                            setClocksSyncedAt(prevC.clocksSyncedAt ?? null);
+                            setCurrentTurnColor(prevC.turnColor);
+                        }
                     } else {
                         setLastError(null);
                     }
@@ -42,11 +98,22 @@ const Board = ({ board }: { board: BoardType | null }) => {
             });
         } catch (e: any) {
             setLastError(e?.message || "connection_error");
+            // Revert optimistic state on transport error
+            const prevB = boardSnapshotRef.current;
+            const prevC = clocksSnapshotRef.current;
+            if (prevB) setBoardCtx(prevB);
+            if (prevC) {
+                setWhiteMs(prevC.whiteMs ?? null);
+                setBlackMs(prevC.blackMs ?? null);
+                setClocksSyncedAt(prevC.clocksSyncedAt ?? null);
+                setCurrentTurnColor(prevC.turnColor);
+            }
         } finally {
             setSelected(null);
             setHints([]);
+            setPendingMove(false);
         }
-    }, [myColor]);
+    }, [myColor, pendingMove, currentTurnColor, board, setBoardCtx, whiteMs, blackMs, clocksSyncedAt, setWhiteMs, setBlackMs, setClocksSyncedAt, setCurrentTurnColor]);
 
     // Generate simple pseudo-legal hints (server still validates). Covers basic chess-like moves and occupancy rules.
     const computeHints = useCallback((from: { x: number; y: number; pieceId: number }) => {
@@ -88,16 +155,16 @@ const Board = ({ board }: { board: BoardType | null }) => {
                 break;
             }
             case "PHANTOM_MATRIARCH": // queen
-                rays([[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]);
+                rays([[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]);
                 break;
             case "SHADOW_HUNTER": // rook
-                rays([[1,0],[-1,0],[0,1],[0,-1]]);
+                rays([[1, 0], [-1, 0], [0, 1], [0, -1]]);
                 break;
             case "DOPPELGANGER": // bishop by default
-                rays([[1,1],[1,-1],[-1,1],[-1,-1]]);
+                rays([[1, 1], [1, -1], [-1, 1], [-1, -1]]);
                 break;
             case "PHOBIC_LEAPER": { // knight
-                const ds = [[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]];
+                const ds = [[1, 2], [2, 1], [-1, 2], [-2, 1], [1, -2], [2, -1], [-1, -2], [-2, -1]];
                 for (const [dx, dy] of ds) {
                     const x = from.x + dx, y = from.y + dy; if (!inside(x, y)) continue; pushIf(x, y);
                 }
@@ -108,7 +175,7 @@ const Board = ({ board }: { board: BoardType | null }) => {
                 const f1y = from.y + dir;
                 if (inside(from.x, f1y) && at(from.x, f1y) == null) res.push({ x: from.x, y: f1y });
                 const startRow = color === "white" ? 1 : 6;
-                const f2y = from.y + 2*dir;
+                const f2y = from.y + 2 * dir;
                 if (from.y === startRow && at(from.x, f1y) == null && inside(from.x, f2y) && at(from.x, f2y) == null) res.push({ x: from.x, y: f2y });
                 // captures
                 for (const dx of [-1, 1] as const) {
@@ -132,101 +199,106 @@ const Board = ({ board }: { board: BoardType | null }) => {
 
     return (
         <div className="flex flex-col items-center">
-        <div
-            className={`mx-auto bg-gray-800 rounded-lg overflow-hidden transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'
-                }`}
-            style={{
-                aspectRatio: "1 / 1",
-                maxWidth: "min(90vw, 90vh - 8rem)"
-            }}
-        >
-            <div className="grid h-full w-full">
-                {orientedRows.map((row, rowIdxVisual) => {
-                    // Map visual row to actual board row depending on orientation
-                    const actualRowIdx = myColor === "black" ? rowIdxVisual : 7 - rowIdxVisual;
-                    return (
-                    <div key={rowIdxVisual} className="grid grid-cols-8">
-                        {row.map((_cell, colIdxVisual) => {
-                            const actualColIdx = myColor === "black" ? 7 - colIdxVisual : colIdxVisual;
-                            const cell = row[actualColIdx];
-                            const isDark = (actualRowIdx + actualColIdx) % 2 === 1;
-                            const isMine = !!cell?.color && (!!myColor ? cell.color === myColor : false);
-                            const isSelected = selected?.x === actualColIdx && selected?.y === actualRowIdx;
-                            return (
-                                <div
-                                    key={colIdxVisual}
-                                    className={`aspect-square flex justify-center items-center relative
+            <div
+                className={`mx-auto bg-gray-800 rounded-lg overflow-hidden transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'
+                    }`}
+                style={{
+                    aspectRatio: "1 / 1",
+                    maxWidth: "min(90vw, 90vh - 8rem)"
+                }}
+            >
+                <div className="grid h-full w-full">
+                    {orientedRows.map((row, rowIdxVisual) => {
+                        // Map visual row to actual board row depending on orientation
+                        const actualRowIdx = myColor === "black" ? rowIdxVisual : 7 - rowIdxVisual;
+                        return (
+                            <div key={rowIdxVisual} className="grid grid-cols-8">
+                                {row.map((_cell, colIdxVisual) => {
+                                    const actualColIdx = myColor === "black" ? 7 - colIdxVisual : colIdxVisual;
+                                    const cell = row[actualColIdx];
+                                    const isDark = (actualRowIdx + actualColIdx) % 2 === 1;
+                                    const isMine = !!cell?.color && (!!myColor ? cell.color === myColor : false);
+                                    const isSelected = selected?.x === actualColIdx && selected?.y === actualRowIdx;
+                                    return (
+                                        <div
+                                            key={colIdxVisual}
+                                            className={`aspect-square flex justify-center items-center relative
                                         ${isDark ? "bg-gray-700" : "bg-gray-800"}
                                         ${isSelected ? "ring-2 ring-indigo-400" : ""}
                                         ${cell && isMine ? "cursor-pointer" : "cursor-default"}
                                         transition-colors duration-150`}
-                                    onClick={() => {
-                                        // Allow selection only of my pieces
-                                        if (!myColor) return;
-                                        // Selecting own piece on own turn => compute hints
-                                        if (cell && cell.color && isMine) {
-                                            setSelected({ x: actualColIdx, y: actualRowIdx, pieceId: cell.id });
-                                            if (currentTurnColor === myColor) setHints(computeHints({ x: actualColIdx, y: actualRowIdx, pieceId: cell.id }));
-                                            else setHints([]);
-                                            return;
-                                        }
-                                        // If we have a selected piece and click a destination (empty or enemy), try move
-                                        if (selected && (selected.x !== actualColIdx || selected.y !== actualRowIdx)) {
-                                            attemptMove({ x: selected.x, y: selected.y, pieceId: selected.pieceId }, { x: actualColIdx, y: actualRowIdx });
-                                        } else {
-                                            setSelected(null);
-                                            setHints([]);
-                                        }
-                                    }}
-                                    onDragOver={(e) => {
-                                        if (selected) e.preventDefault(); // allow drop
-                                    }}
-                                    onDrop={(e) => {
-                                        e.preventDefault();
-                                        if (!selected) return;
-                                        attemptMove({ x: selected.x, y: selected.y, pieceId: selected.pieceId }, { x: actualColIdx, y: actualRowIdx });
-                                    }}
-                                >
-                                    {cell && cell.color && (
-                                        <Cell 
-                                            mappedImages={PIECE_IMAGES} 
-                                            cell={cell} 
-                                            isMine={isMine} 
-                                            onDragStart={() => {
-                                                if (!myColor || !isMine) return;
-                                                setSelected({ x: actualColIdx, y: actualRowIdx, pieceId: cell.id });
-                                                if (currentTurnColor === myColor) setHints(computeHints({ x: actualColIdx, y: actualRowIdx, pieceId: cell.id }));
-                                                else setHints([]);
+                                            onClick={() => {
+                                                if (pendingMove) return; // block interactions while a move is pending
+                                                // Allow selection only of my pieces
+                                                if (!myColor) return;
+                                                // Selecting own piece on own turn => compute hints
+                                                if (cell && cell.color && isMine) {
+                                                    setSelected({ x: actualColIdx, y: actualRowIdx, pieceId: cell.id });
+                                                    if (currentTurnColor === myColor) setHints(computeHints({ x: actualColIdx, y: actualRowIdx, pieceId: cell.id }));
+                                                    else setHints([]);
+                                                    return;
+                                                }
+                                                // If we have a selected piece and click a destination (empty or enemy), try move
+                                                if (selected && (selected.x !== actualColIdx || selected.y !== actualRowIdx)) {
+                                                    attemptMove({ x: selected.x, y: selected.y, pieceId: selected.pieceId }, { x: actualColIdx, y: actualRowIdx });
+                                                } else {
+                                                    setSelected(null);
+                                                    setHints([]);
+                                                }
                                             }}
-                                        />
-                                    )}
+                                            onDragOver={(e) => {
+                                                if (pendingMove) return;
+                                                if (selected) e.preventDefault(); // allow drop
+                                            }}
+                                            onDrop={(e) => {
+                                                e.preventDefault();
+                                                if (pendingMove) return;
+                                                if (!selected) return;
+                                                attemptMove({ x: selected.x, y: selected.y, pieceId: selected.pieceId }, { x: actualColIdx, y: actualRowIdx });
+                                            }}
+                                        >
+                                            {cell && cell.color && (
+                                                <Cell
+                                                    mappedImages={PIECE_IMAGES}
+                                                    cell={cell}
+                                                    isMine={isMine}
+                                                    onDragStart={() => {
+                                                        if (pendingMove) return;
+                                                        if (!myColor || !isMine) return;
+                                                        setSelected({ x: actualColIdx, y: actualRowIdx, pieceId: cell.id });
+                                                        if (currentTurnColor === myColor) setHints(computeHints({ x: actualColIdx, y: actualRowIdx, pieceId: cell.id }));
+                                                        else setHints([]);
+                                                    }}
+                                                />
+                                            )}
 
-                                    {/* Move hint dot */}
-                                    {hints.some(h => h.x === actualColIdx && h.y === actualRowIdx) && (
-                                        <span className="absolute w-3 h-3 rounded-full bg-indigo-400/80" style={{ pointerEvents: "none" }}></span>
-                                    )}
+                                            {/* Move hint dot (hidden while a move is pending) */}
+                                            {!pendingMove && hints.some(h => h.x === actualColIdx && h.y === actualRowIdx) && (
+                                                <span className="absolute w-3 h-3 rounded-full bg-indigo-400/80" style={{ pointerEvents: "none" }}></span>
+                                            )}
 
-                                    {/* Coordinates */}
-                    {rowIdxVisual === 7 && (
-                                        <span className="absolute bottom-0.5 right-1 text-[8px] text-gray-500">
-                        {String.fromCharCode(97 + (myColor === "black" ? 7 - colIdxVisual : colIdxVisual))}
-                                        </span>
-                                    )}
-                                    {colIdxVisual === 0 && (
-                                        <span className="absolute top-0.5 left-1 text-[8px] text-gray-500">
-                        {myColor === "black" ? rowIdxVisual + 1 : 8 - rowIdxVisual}
-                                        </span>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
-                );})}
+                                            {/* Coordinates */}
+                                            {rowIdxVisual === 7 && (
+                                                <span className="absolute bottom-0.5 right-1 text-[8px] text-gray-500">
+                                                    {String.fromCharCode(97 + (myColor === "black" ? 7 - colIdxVisual : colIdxVisual))}
+                                                </span>
+                                            )}
+                                            {colIdxVisual === 0 && (
+                                                <span className="absolute top-0.5 left-1 text-[8px] text-gray-500">
+                                                    {myColor === "black" ? rowIdxVisual + 1 : 8 - rowIdxVisual}
+                                                </span>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
-        </div>
-        {lastError && (
-            <div className="mt-2 text-center text-xs text-red-400">{lastError}</div>
-        )}
+            {lastError && (
+                <div className="mt-2 text-center text-xs text-red-400">{lastError}</div>
+            )}
         </div>
     );
 };
@@ -242,7 +314,7 @@ const Cell = ({ mappedImages, cell, isMine, onDragStart }: { mappedImages: Piece
             draggable={isMine}
             onDragStart={(e) => {
                 if (!isMine) return;
-                try { e.dataTransfer?.setData("text/plain", String(cell.id)); } catch {}
+                try { e.dataTransfer?.setData("text/plain", String(cell.id)); } catch { }
                 onDragStart();
             }}
         />
