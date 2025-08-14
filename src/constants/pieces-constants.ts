@@ -109,9 +109,9 @@ export const PIECES: Record<string, PieceType> = {
             effect: (ctx) => { /* logic */ }
         },
         passiveAbility: {
-            name: "Mental Echo",
+            name: "Psychic Gateway",
             trigger: "passive",
-            description: "When captured, the captor must declare its next intended move (if it plans to move that piece) at the start of its turn.",
+            description: "When two Larvas are aligned diagonally with exactly one empty square between them, that square becomes a 'psychic gateway'. Any friendly piece moving into it may immediately move again as if it had just started its turn.",
             effect: (ctx) => { /* logic */ }
         }
     },

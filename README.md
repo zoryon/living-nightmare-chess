@@ -66,7 +66,7 @@ Instead, the player may choose one of the following:
 | **Shadow Hunter** *(Rook)* | 2 | Rook | **Shadow Leap**: Once per game, if the other allied Hunter is captured, teleport to its starting square. | 2 | **Camouflage**: If it doesn’t move for an entire turn, it cannot be captured on the opponent’s next turn. |
 | **Doppelgänger** *(Bishop)* | 2 | Bishop | **Mimicry**: If adjacent to another piece (friend or foe, excluding the King), copy its *default movement* for that turn. | 2 | **Unstable Form**: After capturing, must immediately move 1 additional legal square if possible. |
 | **Phobic Leaper** *(Knight)* | 2 | Knight | **Terror Leap**: Make a long jump in an L-shape of 3×2 squares instead of 2×1. | 3 | **Fearful Terrain**: Squares the Leaper attacks are “uneasy”. If a sliding piece starts inside the Leaper’s attack range and moves through an uneasy square to exit that range, it must spend 1 Dream Energy to complete the move. |
-| **Psychic Larva** *(Pawn)* | 8 | Pawn | **Psychic Burst**: When capturing, enemy pieces adjacent to the captured piece cannot move next turn. Once per Larva. | 1 | **Mental Echo**: When captured, the captor must declare its next intended move (if it plans to move that piece) at the start of its turn. |
+| **Psychic Larva** *(Pawn)* | 8 | Pawn | **Psychic Burst**: When capturing, enemy pieces adjacent to the captured piece cannot move next turn. Once per Larva. | 1 | **Psychic Gateway**: When two Larvas are aligned diagonally with exactly one empty square between them, that square becomes a 'psychic gateway'. Any friendly piece moving into it may immediately move again as if it had just started its turn. |
 
 ---
 

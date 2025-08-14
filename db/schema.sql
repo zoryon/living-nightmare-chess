@@ -97,7 +97,7 @@ CREATE TABLE `match_player` (
     `userId` int,
     `matchId` int NOT NULL,
     `color` enum('WHITE','BLACK') COLLATE utf8mb4_unicode_ci NOT NULL,
-    `dreamEnergy` int NOT NULL DEFAULT 10,
+    `dreamEnergy` int NOT NULL DEFAULT 20,
     PRIMARY KEY (`id`),
     KEY `matchId` (`matchId`),
     KEY `userId` (`userId`),
