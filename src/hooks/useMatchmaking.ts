@@ -112,6 +112,14 @@ export function useMatchmaking() {
         }
       });
 
+      // Handle opponent disconnect before game starts or other queue errors
+      s.on("error:opponent_disconnected", () => {
+        setState({ status: "searching" });
+      });
+      s.on("error:match_queue_failed", () => {
+        setState({ status: "error", message: "Queue failed. Please try again." });
+      });
+
       s.on("error:match_not_found", () => {
         setState({ status: "error", message: "No match found" });
       });
@@ -127,6 +135,7 @@ export function useMatchmaking() {
         s.off("match:resume");
         s.off("error:match_not_found");
         s.off("error:opponent_disconnected");
+        s.off("error:match_queue_failed");
         s.off("match:update");
       }
     };
@@ -139,6 +148,11 @@ export function useMatchmaking() {
         s.once("connect", () => res());
         s.once("connect_error", rej);
       });
+      // Clear any stale finished state before queueing a new match
+      setHydrated(false);
+      setFinished(false);
+      setWinnerId(null);
+      setFinishReason(null);
       // Explicitly ask server to queue
       s.emit("match:queue");
       setState({ status: "searching" });

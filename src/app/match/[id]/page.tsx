@@ -12,8 +12,9 @@ import PromotionModal from "@/components/PromotionModal";
 export default function MatchPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { board, myUserId, myColor, finished, winnerId, finishReason, hydrated, setFinished, setWinnerId, setFinishReason, setHydrated } = useMatch();
+  const { board, myUserId, myColor, finished, winnerId, finishReason, hydrated, setFinished, setWinnerId, setFinishReason, setHydrated, gameId } = useMatch() as any;
   const [promotionLarvaId, setPromotionLarvaId] = useState<number | null>(null);
+  const [resigning, setResigning] = useState(false);
 
   useMatchHydration(Number(id));
 
@@ -97,17 +98,31 @@ export default function MatchPage() {
       <div className="flex items-center justify-between mb-2">
         <button
           className="text-sm px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
-          disabled={finished}
+          disabled={finished || resigning}
           onClick={async () => {
+            if (resigning) return;
+            setResigning(true);
             try {
               const s = await getSocket();
+              if (!s.connected) {
+                await new Promise<void>((res, rej) => {
+                  s.once("connect", () => res());
+                  s.once("connect_error", rej);
+                });
+              }
+              // Emit with ack and a timeout safety
               await new Promise<void>((resolve) => {
-                s.emit("match:resign", {}, (_ack: any) => resolve());
+                let done = false;
+                const timer = setTimeout(() => { if (!done) resolve(); }, 2000);
+                s.emit("match:resign", {}, (_ack: any) => { done = true; clearTimeout(timer); resolve(); });
               });
             } catch { }
+            finally {
+              setResigning(false);
+            }
           }}
         >
-          Resign
+          {resigning ? "Resigning…" : "Resign"}
         </button>
       </div>
 
@@ -116,7 +131,7 @@ export default function MatchPage() {
         {promotionLarvaId != null && (
           <PromotionModal larvaId={promotionLarvaId} onClose={() => setPromotionLarvaId(null)} />
         )}
-        {hydrated && finished && (
+        {hydrated && finished && Number(gameId) === Number(id) && (
           <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
             <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 text-center space-y-3 w-5/6 max-w-sm">
               <h2 className="text-xl font-semibold">Match finished</h2>
