@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMatch } from "@/contexts/MatchContext";
+import { getSocket } from "@/lib/socket";
 
 function format(ms: number) {
     const clamped = Math.max(0, Math.floor(ms));
@@ -38,6 +39,20 @@ export default function Clocks() {
         const black = currentTurnColor === "black" ? blackMs - elapsed : blackMs;
         return [Math.max(0, white), Math.max(0, black)] as const;
     }, [whiteMs, blackMs, currentTurnColor, clocksSyncedAt, now]);
+
+    // If client-side computed time hits zero for the side to move, ask server to validate/end
+    useEffect(() => {
+        if (whiteDisplay == null || blackDisplay == null) return;
+        const running = currentTurnColor === "white" ? whiteDisplay : currentTurnColor === "black" ? blackDisplay : null;
+        if (running != null && running <= 0) {
+            (async () => {
+                try {
+                    const s = await getSocket();
+                    s.emit("clock:probe", {}, () => {});
+                } catch {}
+            })();
+        }
+    }, [whiteDisplay, blackDisplay, currentTurnColor]);
 
     const whiteLabel = myColor === "white" ? "You" : "Opponent";
     const blackLabel = myColor === "black" ? "You" : "Opponent";
