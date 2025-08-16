@@ -4,7 +4,6 @@ import { BoardCell, BoardType, PieceImagesType } from "@/types";
 import { useMatch } from "@/contexts/MatchContext";
 import { getSocket } from "@/lib/socket";
 import PieceAbilities from "./PieceAbilities";
-
 const Board = ({ board }: { board: BoardType | null }) => {
     const [isVisible, setIsVisible] = useState(false);
     const { myColor, currentTurnColor, finished, setCurrentTurnColor, setBoard: setBoardCtx, whiteMs, blackMs, setWhiteMs, setBlackMs, clocksSyncedAt, setClocksSyncedAt } = useMatch();
@@ -13,6 +12,13 @@ const Board = ({ board }: { board: BoardType | null }) => {
     const [hints, setHints] = useState<Array<{ x: number; y: number }>>([]);
     const [pendingMove, setPendingMove] = useState(false);
     const [abilityPiece, setAbilityPiece] = useState<any | null>(null);
+    const [abilityArm, setAbilityArm] = useState<{
+        pieceId: number;
+        pieceType: string;
+        abilityName: string;
+        needsTarget: boolean;
+    } | null>(null);
+    const [abilityBusy, setAbilityBusy] = useState(false);
     const boardSnapshotRef = useRef<BoardType | null>(null);
     const clocksSnapshotRef = useRef<{ whiteMs: number | null; blackMs: number | null; clocksSyncedAt: number | null; turnColor: "white" | "black" | null } | null>(null);
 
@@ -31,8 +37,8 @@ const Board = ({ board }: { board: BoardType | null }) => {
     }, [board, myColor]);
 
     const attemptMove = useCallback(async (from: { x: number; y: number; pieceId: number }, to: { x: number; y: number }) => {
-    if (!myColor) return; // color unknown, avoid sending
-    if (finished) return; // no moves after finish
+        if (!myColor) return; // color unknown, avoid sending
+        if (finished) return; // no moves after finish
         if (pendingMove) return; // prevent concurrent optimistic moves
         if (currentTurnColor !== myColor) {
             setLastError("not_your_turn");
@@ -189,20 +195,41 @@ const Board = ({ board }: { board: BoardType | null }) => {
         return res;
     }, [board]);
 
-    if (!board) {
-        return (
-            <div className="flex justify-center items-center h-[70vh]">
-                <div className="space-y-3 text-center">
-                    <div className="mx-auto w-8 h-8 border-2 border-gray-700 border-t-indigo-500 rounded-full animate-spin"></div>
-                </div>
-            </div>
-        );
-    }
+    // Note: Do not early-return here; render a spinner conditionally to keep hooks order stable.
 
     // Centralized ability opener (used by long-press, right-click, and the small button)
     const openAbilities = useCallback((p: BoardCell | null) => {
         if (p && p.color) setAbilityPiece(p);
     }, []);
+
+    // Ability use helper (handles ack + errors)
+    const sendAbility = useCallback(async (pieceId: number, abilityName: string, target?: any) => {
+        setAbilityBusy(true);
+        try {
+            const s = await getSocket();
+            await new Promise<void>((resolve) => {
+                s.emit("ability:use", { pieceId, name: abilityName, target }, (ack: any) => {
+                    if (!ack?.ok) setLastError(ack?.error || "ability_failed");
+                    resolve();
+                });
+            });
+        } catch (e: any) {
+            setLastError(e?.message || "connection_error");
+        } finally {
+            setAbilityBusy(false);
+            setAbilityArm(null);
+        }
+    }, []);
+
+    // Esc to cancel arming
+    useEffect(() => {
+        if (!abilityArm) return;
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === "Escape") setAbilityArm(null);
+        };
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [abilityArm]);
 
     return (
         <>
@@ -214,8 +241,9 @@ const Board = ({ board }: { board: BoardType | null }) => {
                         maxWidth: "min(90vw, 90vh - 8rem)"
                     }}
                 >
-                    <div className="grid h-full w-full">
-                        {orientedRows.map((row, rowIdxVisual) => {
+                    {board ? (
+                        <div className="grid h-full w-full">
+                            {orientedRows.map((row, rowIdxVisual) => {
                             const actualRowIdx = myColor === "black" ? rowIdxVisual : 7 - rowIdxVisual;
                             return (
                                 <div key={rowIdxVisual} className="grid grid-cols-8">
@@ -233,7 +261,18 @@ const Board = ({ board }: { board: BoardType | null }) => {
                                                     ${isSelected ? "border border-zinc-500" : ""}
                                                     ${cell && isMine ? "cursor-pointer" : "cursor-default"}
                                                     transition-colors duration-150`}
+                                                data-x={actualColIdx}
+                                                data-y={actualRowIdx}
                                                 onClick={() => {
+                                                    // Ability arming: next click selects target square, consume event
+                                                    if (abilityArm) {
+                                                        if (abilityArm.needsTarget) {
+                                                            sendAbility(abilityArm.pieceId, abilityArm.abilityName, { x: actualColIdx, y: actualRowIdx });
+                                                        } else {
+                                                            sendAbility(abilityArm.pieceId, abilityArm.abilityName);
+                                                        }
+                                                        return;
+                                                    }
                                                     // Removed: opening abilities on click (so moves aren’t blocked)
                                                     if (finished) return;
                                                     if (pendingMove) return;
@@ -314,16 +353,74 @@ const Board = ({ board }: { board: BoardType | null }) => {
                                 </div>
                             );
                         })}
-                    </div>
+                        </div>
+                    ) : (
+                        <div className="flex justify-center items-center h-full">
+                            <div className="space-y-3 text-center">
+                                <div className="mx-auto w-8 h-8 border-2 border-gray-700 border-t-indigo-500 rounded-full animate-spin"></div>
+                            </div>
+                        </div>
+                    )}
                 </div>
+                {/* Ability arming banner */}
+                {abilityArm && (
+                    <div className="mt-3 text-sm px-3 py-2 rounded-lg bg-fuchsia-900/20 text-fuchsia-100 ring-1 ring-fuchsia-800/40 flex items-center justify-between gap-3 w-full max-w-xl">
+                        <div className="flex items-center gap-2">
+                            <span className="inline-block h-2.5 w-2.5 rounded-full bg-fuchsia-400 animate-pulse" />
+                            {abilityArm.needsTarget ? (
+                                <span>Select a target square for {abilityArm.abilityName}</span>
+                            ) : (
+                                <span>Using {abilityArm.abilityName}…</span>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                            {abilityBusy && (<span className="inline-block h-4 w-4 border-2 border-fuchsia-500 border-t-transparent rounded-full animate-spin" />)}
+                            <button
+                                className="text-xs px-2 py-1 rounded bg-neutral-800 hover:bg-neutral-700 ring-1 ring-neutral-700"
+                                onClick={() => setAbilityArm(null)}
+                                disabled={abilityBusy}
+                            >Cancel</button>
+                        </div>
+                    </div>
+                )}
                 {lastError && (
                     <div className="mt-2 text-center text-xs text-red-400">{lastError}</div>
                 )}
             </div>
 
             <PieceAbilities
-                piece={abilityPiece}
+                piece={abilityPiece as any}
                 onClose={() => setAbilityPiece(null)}
+                canUse={(() => {
+                    if (!abilityPiece || !myColor || finished) return false;
+                    if (currentTurnColor !== myColor) return false;
+                    return abilityPiece.color === myColor;
+                })()}
+                onUseActive={(abilityName) => {
+                    if (!abilityPiece || !myColor || finished) return;
+                    if (currentTurnColor !== myColor) return; // not your turn
+                    if (abilityPiece.color !== myColor) return; // not your piece
+                    if (!abilityPiece) return;
+                    const pieceType = abilityPiece.type as string;
+                    const key = `${pieceType}:${abilityName}`;
+                    const targeted = new Set<string>([
+                        "SLEEPLESS_EYE:Terrifying Gaze",
+                        "DOPPELGANGER:Mimicry",
+                        "SHADOW_HUNTER:Shadow Bind",
+                        "PHOBIC_LEAPER:Terror Leap",
+                        "PHANTOM_MATRIARCH:Ethereal Passage",
+                    ]);
+                    const needsTarget = targeted.has(key);
+                    setAbilityPiece(null);
+                    if (needsTarget) {
+                        // Enter arming mode; next square click will send
+                        setAbilityArm({ pieceId: abilityPiece.id, pieceType, abilityName, needsTarget: true });
+                    } else {
+                        // Fire immediately
+                        setAbilityArm({ pieceId: abilityPiece.id, pieceType, abilityName, needsTarget: false });
+                        sendAbility(abilityPiece.id, abilityName);
+                    }
+                }}
             />
         </>
     );

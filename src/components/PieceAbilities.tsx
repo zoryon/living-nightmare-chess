@@ -66,9 +66,13 @@ function resolveCatalogKey(piece?: PieceLike | null) {
 export default function PieceAbilities({
     piece,
     onClose,
+    onUseActive,
+    canUse,
 }: {
     piece: PieceLike | null;
     onClose: () => void;
+    onUseActive?: (abilityName: string) => void;
+    canUse?: boolean;
 }) {
     const catalog = useMemo(getPiecesCatalog, []);
     const key = useMemo(() => resolveCatalogKey(piece), [piece]);
@@ -137,12 +141,25 @@ export default function PieceAbilities({
                                         <span className="px-1.5 py-0.5 rounded bg-fuchsia-900/30 ring-1 ring-fuchsia-800/50">DE {entry.activeAbility.cost}</span>
                                     )}
                                     {typeof entry.activeAbility.maxUses === "number" && (
-                                        <span className="px-1.5 py-0.5 rounded bg-fuchsia-900/30 ring-1 ring-fuchsia-800/50">x{entry.activeAbility.maxUses}</span>
+                                        <span className="px-1.5 py-0.5 rounded bg-fuchsia-900/30 ring-1 ring-fuchsia-800/50">
+                                            {Math.max(0, (entry.activeAbility.maxUses ?? 0) - (Number((piece as any)?.usedAbility) || 0))}/{entry.activeAbility.maxUses}
+                                        </span>
                                     )}
                                 </div>
                             </div>
                             {entry.activeAbility.description && (
                                 <p className="text-neutral-300/90">{entry.activeAbility.description}</p>
+                            )}
+                            {onUseActive && (
+                                <div className="mt-2 flex justify-end">
+                                    <button
+                                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-fuchsia-700/30 text-fuchsia-100 ring-1 ring-fuchsia-700/50 hover:bg-fuchsia-700/40 disabled:opacity-40"
+                                        onClick={() => onUseActive(entry.activeAbility!.name)}
+                                        disabled={!canUse || (typeof entry.activeAbility.maxUses === "number" && (Number((piece as any)?.usedAbility) || 0) >= (entry.activeAbility.maxUses ?? 0))}
+                                    >
+                                        Use
+                                    </button>
+                                </div>
                             )}
                         </article>
                     )}
