@@ -587,7 +587,7 @@ const Board = ({ board }: { board: BoardType | null }) => {
                                                     {/* Ability button for the selected piece (tap to open) */}
                                                     {isSelected && cell && (
                                                         <button
-                                                            className="absolute top-1 right-1 h-6 w-6 rounded-md bg-black/60 text-fuchsia-200 ring-1 ring-neutral-800 hover:bg-black/80"
+                                                            className="absolute top-1 right-1 size-1.5 md:size-6 rounded-md bg-black/60 text-fuchsia-200 ring-1 ring-neutral-800 hover:bg-black/80"
                                                             onClick={(e) => { e.stopPropagation(); openAbilities(cell); }}
                                                             aria-label="Show abilities"
                                                             title="Show abilities"
