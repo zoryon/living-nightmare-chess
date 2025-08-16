@@ -1,14 +1,5 @@
 import { PIECES } from "@/constants";
 
-export type Ability = {
-  name: string;
-  trigger: "active" | "passive";
-  cost?: number;          // Dream Energy cost if active
-  maxUses?: number;       // Only for active abilities
-  description: string;    // Tooltip or UI
-  effect: (ctx: any) => void; // Logic (game context passed in)
-};
-
 export type PieceType = {
   name: string;
   quantity: number;
@@ -32,3 +23,27 @@ export type PieceImagesType = Record<
   string,
   { white: string; black: string }
 >;
+
+export type Ability = {
+  name: string;
+  trigger?: "active" | "passive";
+  description?: string;
+  cost?: number;
+  maxUses?: number;
+};
+
+export type CatalogEntry = {
+  name: string;
+  activeAbility?: Ability;
+  passiveAbility?: Ability;
+};
+
+export type PieceLike = {
+  id: number;
+  name?: string;
+  type?: string;
+  kind?: string;
+  slug?: string;
+  code?: string;
+  color?: "white" | "black";
+};

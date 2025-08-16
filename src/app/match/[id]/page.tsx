@@ -57,7 +57,7 @@ export default function MatchPage() {
         };
         s.on("move:applied", onMoveApplied);
         s.on("promotion:applied", onPromotionApplied);
-      } catch {}
+      } catch { }
     })();
     return () => {
       mounted = false;
@@ -66,7 +66,7 @@ export default function MatchPage() {
           const s = await getSocket();
           s.off("move:applied");
           s.off("promotion:applied");
-        } catch {}
+        } catch { }
       })();
     };
   }, [board, myUserId]);
@@ -93,57 +93,55 @@ export default function MatchPage() {
   }, [board, myUserId]);
 
   return (
-    <main className="min-h-dvh bg-gray-900 flex flex-col justify-center items-center p-4">
-      <div className="w-full max-w-2xl">
-        <div className="flex items-center justify-between mb-2">
-          <button
-            className="text-sm px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
-            disabled={finished}
-            onClick={async () => {
-              try {
-                const s = await getSocket();
-                await new Promise<void>((resolve) => {
-                  s.emit("match:resign", {}, (_ack: any) => resolve());
-                });
-              } catch {}
-            }}
-          >
-            Resign
-          </button>
-        </div>
+    <main className="mx-auto max-w-5xl px-3 py-4 md:py-6">
+      <div className="flex items-center justify-between mb-2">
+        <button
+          className="text-sm px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+          disabled={finished}
+          onClick={async () => {
+            try {
+              const s = await getSocket();
+              await new Promise<void>((resolve) => {
+                s.emit("match:resign", {}, (_ack: any) => resolve());
+              });
+            } catch { }
+          }}
+        >
+          Resign
+        </button>
+      </div>
 
-        <div className="relative">
-          <Board board={board} />
-          {promotionLarvaId != null && (
-            <PromotionModal larvaId={promotionLarvaId} onClose={() => setPromotionLarvaId(null)} />
-          )}
-          {hydrated && finished && (
-            <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
-              <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 text-center space-y-3 w-5/6 max-w-sm">
-                <h2 className="text-xl font-semibold">Match finished</h2>
-                <p className="text-sm text-gray-300">
-                  {winnerId == null ? "Draw" : winnerId === myUserId ? "You won" : "You lost"}
-                  {finishReason ? ` · ${finishReason}` : ""}
-                </p>
-                <div className="flex gap-3 justify-center pt-2">
-                  <button
-                    className="px-3 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-700"
-                    onClick={() => router.push("/find-match")}
-                  >Play again</button>
-                  <button
-                    className="px-3 py-1 rounded bg-gray-700 text-white hover:bg-gray-600"
-                    onClick={() => router.push("/")}
-                  >Home</button>
-                </div>
+      <div className="relative">
+        <Board board={board} />
+        {promotionLarvaId != null && (
+          <PromotionModal larvaId={promotionLarvaId} onClose={() => setPromotionLarvaId(null)} />
+        )}
+        {hydrated && finished && (
+          <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
+            <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 text-center space-y-3 w-5/6 max-w-sm">
+              <h2 className="text-xl font-semibold">Match finished</h2>
+              <p className="text-sm text-gray-300">
+                {winnerId == null ? "Draw" : winnerId === myUserId ? "You won" : "You lost"}
+                {finishReason ? ` · ${finishReason}` : ""}
+              </p>
+              <div className="flex gap-3 justify-center pt-2">
+                <button
+                  className="px-3 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-700"
+                  onClick={() => router.push("/find-match")}
+                >Play again</button>
+                <button
+                  className="px-3 py-1 rounded bg-gray-700 text-white hover:bg-gray-600"
+                  onClick={() => router.push("/")}
+                >Home</button>
               </div>
             </div>
-          )}
-        </div>
-        <Clocks />
+          </div>
+        )}
+      </div>
+      <Clocks />
 
-        <div className="mt-8 text-center text-gray-600 text-sm">
-          <p>Living Nightmare Chess</p>
-        </div>
+      <div className="mt-8 text-center text-gray-600 text-sm">
+        <p>Living Nightmare Chess</p>
       </div>
     </main>
   );

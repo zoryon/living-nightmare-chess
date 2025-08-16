@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-
 import { PIECE_IMAGES } from "@/constants";
 import { BoardCell, BoardType, PieceImagesType } from "@/types";
 import { useMatch } from "@/contexts/MatchContext";
 import { getSocket } from "@/lib/socket";
+import PieceAbilities from "./PieceAbilities";
 
 const Board = ({ board }: { board: BoardType | null }) => {
     const [isVisible, setIsVisible] = useState(false);
@@ -12,6 +12,7 @@ const Board = ({ board }: { board: BoardType | null }) => {
     const [lastError, setLastError] = useState<string | null>(null);
     const [hints, setHints] = useState<Array<{ x: number; y: number }>>([]);
     const [pendingMove, setPendingMove] = useState(false);
+    const [abilityPiece, setAbilityPiece] = useState<any | null>(null);
     const boardSnapshotRef = useRef<BoardType | null>(null);
     const clocksSnapshotRef = useRef<{ whiteMs: number | null; blackMs: number | null; clocksSyncedAt: number | null; turnColor: "white" | "black" | null } | null>(null);
 
@@ -198,116 +199,154 @@ const Board = ({ board }: { board: BoardType | null }) => {
         );
     }
 
+    // Centralized ability opener (used by long-press, right-click, and the small button)
+    const openAbilities = useCallback((p: BoardCell | null) => {
+        if (p && p.color) setAbilityPiece(p);
+    }, []);
+
     return (
-        <div className="flex flex-col items-center">
-            <div
-                className={`mx-auto bg-gray-800 rounded-lg overflow-hidden transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'
-                    }`}
-                style={{
-                    aspectRatio: "1 / 1",
-                    maxWidth: "min(90vw, 90vh - 8rem)"
-                }}
-            >
-                <div className="grid h-full w-full">
-                    {orientedRows.map((row, rowIdxVisual) => {
-                        // Map visual row to actual board row depending on orientation
-                        const actualRowIdx = myColor === "black" ? rowIdxVisual : 7 - rowIdxVisual;
-                        return (
-                            <div key={rowIdxVisual} className="grid grid-cols-8">
-                                {row.map((_cell, colIdxVisual) => {
-                                    const actualColIdx = myColor === "black" ? 7 - colIdxVisual : colIdxVisual;
-                                    const cell = row[actualColIdx];
-                                    const isDark = (actualRowIdx + actualColIdx) % 2 === 1;
-                                    const isMine = !!cell?.color && (!!myColor ? cell.color === myColor : false);
-                                    const isSelected = selected?.x === actualColIdx && selected?.y === actualRowIdx;
-                                    return (
-                                        <div
-                                            key={colIdxVisual}
-                                            className={`aspect-square flex justify-center items-center relative
-                                        ${isDark ? "bg-gray-700" : "bg-gray-800"}
-                                        ${isSelected ? "ring-2 ring-indigo-400" : ""}
-                                        ${cell && isMine ? "cursor-pointer" : "cursor-default"}
-                                        transition-colors duration-150`}
-                                            onClick={() => {
-                                                if (finished) return;
-                                                if (pendingMove) return; // block interactions while a move is pending
-                                                // Allow selection only of my pieces
-                                                if (!myColor) return;
-                                                // Selecting own piece on own turn => compute hints
-                                                if (cell && cell.color && isMine) {
-                                                    setSelected({ x: actualColIdx, y: actualRowIdx, pieceId: cell.id });
-                                                    if (currentTurnColor === myColor) setHints(computeHints({ x: actualColIdx, y: actualRowIdx, pieceId: cell.id }));
-                                                    else setHints([]);
-                                                    return;
-                                                }
-                                                // If we have a selected piece and click a destination (empty or enemy), try move
-                                                if (selected && (selected.x !== actualColIdx || selected.y !== actualRowIdx)) {
-                                                    attemptMove({ x: selected.x, y: selected.y, pieceId: selected.pieceId }, { x: actualColIdx, y: actualRowIdx });
-                                                } else {
-                                                    setSelected(null);
-                                                    setHints([]);
-                                                }
-                                            }}
-                                            onDragOver={(e) => {
-                                                if (pendingMove) return;
-                                                if (selected) e.preventDefault(); // allow drop
-                                            }}
-                                            onDrop={(e) => {
-                                                e.preventDefault();
-                                                if (finished) return;
-                                                if (pendingMove) return;
-                                                if (!selected) return;
-                                                attemptMove({ x: selected.x, y: selected.y, pieceId: selected.pieceId }, { x: actualColIdx, y: actualRowIdx });
-                                            }}
-                                        >
-                                            {cell && cell.color && (
-                                                <Cell
-                                                    mappedImages={PIECE_IMAGES}
-                                                    cell={cell}
-                                                    isMine={isMine}
-                                                    onDragStart={() => {
-                                                        if (pendingMove) return;
-                                                        if (!myColor || !isMine) return;
+        <>
+            <div className="flex flex-col items-center">
+                <div
+                    className={`mx-auto bg-gray-900/80 rounded-lg overflow-hidden ring-1 ring-neutral-800 transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
+                    style={{
+                        aspectRatio: "1 / 1",
+                        maxWidth: "min(90vw, 90vh - 8rem)"
+                    }}
+                >
+                    <div className="grid h-full w-full">
+                        {orientedRows.map((row, rowIdxVisual) => {
+                            const actualRowIdx = myColor === "black" ? rowIdxVisual : 7 - rowIdxVisual;
+                            return (
+                                <div key={rowIdxVisual} className="grid grid-cols-8">
+                                    {row.map((_cell, colIdxVisual) => {
+                                        const actualColIdx = myColor === "black" ? 7 - colIdxVisual : colIdxVisual;
+                                        const cell = row[actualColIdx];
+                                        const isDark = (actualRowIdx + actualColIdx) % 2 === 1;
+                                        const isMine = !!cell?.color && (!!myColor ? cell.color === myColor : false);
+                                        const isSelected = selected?.x === actualColIdx && selected?.y === actualRowIdx;
+                                        return (
+                                            <div
+                                                key={colIdxVisual}
+                                                className={`aspect-square flex justify-center items-center relative
+                                                    ${isDark ? "bg-gray-800" : "bg-gray-900"}
+                                                    ${isSelected ? "border border-zinc-500" : ""}
+                                                    ${cell && isMine ? "cursor-pointer" : "cursor-default"}
+                                                    transition-colors duration-150`}
+                                                onClick={() => {
+                                                    // Removed: opening abilities on click (so moves aren’t blocked)
+                                                    if (finished) return;
+                                                    if (pendingMove) return;
+                                                    if (!myColor) return;
+
+                                                    if (cell && cell.color && isMine) {
                                                         setSelected({ x: actualColIdx, y: actualRowIdx, pieceId: cell.id });
                                                         if (currentTurnColor === myColor) setHints(computeHints({ x: actualColIdx, y: actualRowIdx, pieceId: cell.id }));
                                                         else setHints([]);
-                                                    }}
-                                                />
-                                            )}
+                                                        return;
+                                                    }
+                                                    if (selected && (selected.x !== actualColIdx || selected.y !== actualRowIdx)) {
+                                                        attemptMove({ x: selected.x, y: selected.y, pieceId: selected.pieceId }, { x: actualColIdx, y: actualRowIdx });
+                                                    } else {
+                                                        setSelected(null);
+                                                        setHints([]);
+                                                    }
+                                                }}
+                                                onDragOver={(e) => {
+                                                    if (pendingMove) return;
+                                                    if (selected) e.preventDefault();
+                                                }}
+                                                onDrop={(e) => {
+                                                    e.preventDefault();
+                                                    if (finished) return;
+                                                    if (pendingMove) return;
+                                                    if (!selected) return;
+                                                    attemptMove({ x: selected.x, y: selected.y, pieceId: selected.pieceId }, { x: actualColIdx, y: actualRowIdx });
+                                                }}
+                                            >
+                                                {cell && cell.color && (
+                                                    <Cell
+                                                        mappedImages={PIECE_IMAGES}
+                                                        cell={cell}
+                                                        isMine={isMine}
+                                                        onDragStart={() => {
+                                                            if (pendingMove) return;
+                                                            if (!myColor || !isMine) return;
+                                                            setSelected({ x: actualColIdx, y: actualRowIdx, pieceId: cell.id });
+                                                            if (currentTurnColor === myColor) setHints(computeHints({ x: actualColIdx, y: actualRowIdx, pieceId: cell.id }));
+                                                            else setHints([]);
+                                                        }}
+                                                        onOpenAbilities={() => openAbilities(cell)}
+                                                    />
+                                                )}
 
-                                            {/* Move hint dot (hidden while a move is pending) */}
-                                            {!pendingMove && hints.some(h => h.x === actualColIdx && h.y === actualRowIdx) && (
-                                                <span className="absolute w-3 h-3 rounded-full bg-indigo-400/80" style={{ pointerEvents: "none" }}></span>
-                                            )}
+                                                {/* Ability button for the selected piece (tap to open) */}
+                                                {isSelected && cell && (
+                                                    <button
+                                                        className="absolute top-1 right-1 h-6 w-6 rounded-md bg-black/60 text-fuchsia-200 ring-1 ring-neutral-800 hover:bg-black/80"
+                                                        onClick={(e) => { e.stopPropagation(); openAbilities(cell); }}
+                                                        aria-label="Show abilities"
+                                                        title="Show abilities"
+                                                    >
+                                                        ☽
+                                                    </button>
+                                                )}
 
-                                            {/* Coordinates */}
-                                            {rowIdxVisual === 7 && (
-                                                <span className="absolute bottom-0.5 right-1 text-[8px] text-gray-500">
-                                                    {String.fromCharCode(97 + (myColor === "black" ? 7 - colIdxVisual : colIdxVisual))}
-                                                </span>
-                                            )}
-                                            {colIdxVisual === 0 && (
-                                                <span className="absolute top-0.5 left-1 text-[8px] text-gray-500">
-                                                    {myColor === "black" ? rowIdxVisual + 1 : 8 - rowIdxVisual}
-                                                </span>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        );
-                    })}
+                                                {/* Move hint dot (hidden while a move is pending) */}
+                                                {!pendingMove && hints.some(h => h.x === actualColIdx && h.y === actualRowIdx) && (
+                                                    <span className="absolute w-3 h-3 rounded-full bg-foreground" style={{ pointerEvents: "none" }}></span>
+                                                )}
+
+                                                {/* Coordinates */}
+                                                {rowIdxVisual === 7 && (
+                                                    <span className="absolute bottom-0.5 right-1 text-[8px] text-foreground">
+                                                        {String.fromCharCode(97 + (myColor === "black" ? 7 - colIdxVisual : colIdxVisual))}
+                                                    </span>
+                                                )}
+                                                {colIdxVisual === 0 && (
+                                                    <span className="absolute top-0.5 left-1 text-[8px] text-foreground">
+                                                        {myColor === "black" ? rowIdxVisual + 1 : 8 - rowIdxVisual}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
+                {lastError && (
+                    <div className="mt-2 text-center text-xs text-red-400">{lastError}</div>
+                )}
             </div>
-            {lastError && (
-                <div className="mt-2 text-center text-xs text-red-400">{lastError}</div>
-            )}
-        </div>
+
+            <PieceAbilities
+                piece={abilityPiece}
+                onClose={() => setAbilityPiece(null)}
+            />
+        </>
     );
 };
 
-const Cell = ({ mappedImages, cell, isMine, onDragStart }: { mappedImages: PieceImagesType; cell: BoardCell | null; isMine: boolean; onDragStart: () => void; }) => {
+// Double-tap (mobile) + right-click (desktop) to open abilities
+const Cell = ({
+    mappedImages,
+    cell,
+    isMine,
+    onDragStart,
+    onOpenAbilities,
+}: {
+    mappedImages: PieceImagesType;
+    cell: BoardCell | null;
+    isMine: boolean;
+    onDragStart: () => void;
+    onOpenAbilities: () => void;
+}) => {
     if (!cell || !cell.color) return null;
+    // Track double-tap without interfering with drag: do not open if the finger moved.
+    const lastTapTsRef = useRef<number>(0);
+    const movedRef = useRef<boolean>(false);
 
     return (
         <img
@@ -319,6 +358,32 @@ const Cell = ({ mappedImages, cell, isMine, onDragStart }: { mappedImages: Piece
                 if (!isMine) return;
                 try { e.dataTransfer?.setData("text/plain", String(cell.id)); } catch { }
                 onDragStart();
+            }}
+            onContextMenu={(e) => {
+                e.preventDefault();
+                onOpenAbilities();
+            }}
+            onTouchStart={() => {
+                movedRef.current = false;
+            }}
+            onTouchMove={() => {
+                movedRef.current = true; // user is dragging or scrolling, don't trigger double-tap
+            }}
+            onTouchEnd={(e) => {
+                // If the touch moved, treat as drag/scroll and ignore
+                if (movedRef.current) return;
+                const now = Date.now();
+                const dt = now - lastTapTsRef.current;
+                lastTapTsRef.current = now;
+                if (dt > 0 && dt < 260) {
+                    // Considered a double-tap: open abilities and stop the click
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onOpenAbilities();
+                }
+            }}
+            onTouchCancel={() => {
+                movedRef.current = false;
             }}
         />
     );
