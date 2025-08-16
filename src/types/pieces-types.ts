@@ -30,6 +30,8 @@ export type Ability = {
   description?: string;
   cost?: number;
   maxUses?: number;
+  // Optional no-op metadata hook; not used by engine logic
+  effect?: (...args: any[]) => any;
 };
 
 export type CatalogEntry = {

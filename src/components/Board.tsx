@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
 import { PIECE_IMAGES } from "@/constants";
 import { BoardCell, BoardType, PieceImagesType } from "@/types";
 import { useMatch } from "@/contexts/MatchContext";
 import { getSocket } from "@/lib/socket";
-import PieceAbilities from "./PieceAbilities";
+import PieceAbilities from "@/components/PieceAbilities";
+
 const Board = ({ board }: { board: BoardType | null }) => {
     const [isVisible, setIsVisible] = useState(false);
     const { myColor, currentTurnColor, finished, setCurrentTurnColor, setBoard: setBoardCtx, whiteMs, blackMs, setWhiteMs, setBlackMs, clocksSyncedAt, setClocksSyncedAt } = useMatch();
@@ -19,6 +21,11 @@ const Board = ({ board }: { board: BoardType | null }) => {
         needsTarget: boolean;
     } | null>(null);
     const [abilityBusy, setAbilityBusy] = useState(false);
+    const [postAbilitySelectId, setPostAbilitySelectId] = useState<number | null>(null);
+    const [unstableLocal, setUnstableLocal] = useState<number[]>([]);
+    // Local, per-client temporary movement overrides (e.g., Mimicry) before board status syncs
+    const [mimicLocal, setMimicLocal] = useState<Record<number, string>>({});
+    const [abilityTargets, setAbilityTargets] = useState<Array<{ x: number; y: number }>>([]);
     const boardSnapshotRef = useRef<BoardType | null>(null);
     const clocksSnapshotRef = useRef<{ whiteMs: number | null; blackMs: number | null; clocksSyncedAt: number | null; turnColor: "white" | "black" | null } | null>(null);
 
@@ -28,14 +35,10 @@ const Board = ({ board }: { board: BoardType | null }) => {
 
     // Orient rows so the current player is at the bottom; default is white bottom if unknown
     const orientedRows = useMemo(() => {
-        if (!board) return [] as BoardType;
-        // Server stores y=0 as White back rank (bottom). For UI, map top->bottom order.
-        // White perspective: bottom should be y=0 -> reverse rows
-        // Black perspective: bottom should be y=7 -> keep rows as-is
+        if (!board) return [] as unknown as BoardType;
         if (myColor === "black") return board;
         return [...board].slice().reverse() as BoardType;
     }, [board, myColor]);
-
     const attemptMove = useCallback(async (from: { x: number; y: number; pieceId: number }, to: { x: number; y: number }) => {
         if (!myColor) return; // color unknown, avoid sending
         if (finished) return; // no moves after finish
@@ -124,12 +127,20 @@ const Board = ({ board }: { board: BoardType | null }) => {
     }, [myColor, pendingMove, currentTurnColor, board, setBoardCtx, whiteMs, blackMs, clocksSyncedAt, setWhiteMs, setBlackMs, setClocksSyncedAt, setCurrentTurnColor]);
 
     // Generate simple pseudo-legal hints (server still validates). Covers basic chess-like moves and occupancy rules.
+    // Enhanced: honors temporary movement override via status.mimic (from Doppelganger: Mimicry).
     const computeHints = useCallback((from: { x: number; y: number; pieceId: number }) => {
-        if (!board) return [] as Array<{ x: number; y: number }[]>;
+        if (!board) return [] as Array<{ x: number; y: number }>;
         const p = board[from.y]?.[from.x];
         if (!p) return [] as any;
-        const type = p.type;
+        const type = p.type as string;
         const color = p.color as "white" | "black";
+    const status: any = (p as any).status || {};
+    // Prefer local override from recent Mimicry on this client; fall back to status from server sync
+    const mimicOverride = mimicLocal[from.pieceId] ? String(mimicLocal[from.pieceId]).toLowerCase() : null;
+    const mimicMove = mimicOverride || (typeof status.mimic === "string" ? (status.mimic as string).toLowerCase() : null);
+    const unstablePendingTurn: number | undefined = status.unstablePendingTurn;
+    // Only show Unstable forced-step options to the owner of the piece
+    const unstableActive = (type === "DOPPELGANGER") && (color === myColor) && (unstablePendingTurn != null || unstableLocal.includes(from.pieceId));
         const inside = (x: number, y: number) => x >= 0 && x < 8 && y >= 0 && y < 8;
         const at = (x: number, y: number) => (inside(x, y) ? board[y]?.[x] ?? null : null);
         const res: Array<{ x: number; y: number }> = [];
@@ -154,6 +165,77 @@ const Board = ({ board }: { board: BoardType | null }) => {
             }
         };
 
+        // Unstable Form (forced extra step): only 1-square diagonals, with restricted captures
+        if (unstableActive) {
+            const dirs: Array<[number, number]> = [[1, 1], [1, -1], [-1, 1], [-1, -1]];
+            for (const [dx, dy] of dirs) {
+                const x = from.x + dx, y = from.y + dy;
+                if (!inside(x, y)) continue;
+                const c = at(x, y);
+                if (c == null) {
+                    res.push({ x, y });
+                } else {
+                    if (c.color === color) continue; // cannot capture ally
+                    // cannot capture enemy king during forced step
+                    if ((c as any).type === "SLEEPLESS_EYE") continue;
+                    // Only Larva or Doppelgänger capturable
+                    const t = (c as any).type;
+                    if (t === "PSYCHIC_LARVA" || t === "DOPPELGANGER") res.push({ x, y });
+                }
+            }
+            return res;
+        }
+
+        // Helper to add moves based on a movement keyword
+        const addByMovement = (movement: string) => {
+            switch (movement) {
+                case "king": {
+                    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+                        if (dx === 0 && dy === 0) continue;
+                        const x = from.x + dx, y = from.y + dy; if (!inside(x, y)) continue; pushIf(x, y);
+                    }
+                    break;
+                }
+                case "queen":
+                    rays([[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]);
+                    break;
+                case "rook":
+                    rays([[1, 0], [-1, 0], [0, 1], [0, -1]]);
+                    break;
+                case "bishop":
+                    rays([[1, 1], [1, -1], [-1, 1], [-1, -1]]);
+                    break;
+                case "knight": {
+                    const ds = [[1, 2], [2, 1], [-1, 2], [-2, 1], [1, -2], [2, -1], [-1, -2], [-2, -1]];
+                    for (const [dx, dy] of ds) {
+                        const x = from.x + dx, y = from.y + dy; if (!inside(x, y)) continue; pushIf(x, y);
+                    }
+                    break;
+                }
+                case "pawn": {
+                    const dir = color === "white" ? 1 : -1;
+                    const f1y = from.y + dir;
+                    if (inside(from.x, f1y) && at(from.x, f1y) == null) res.push({ x: from.x, y: f1y });
+                    const startRow = color === "white" ? 1 : 6;
+                    const f2y = from.y + 2 * dir;
+                    if (from.y === startRow && at(from.x, f1y) == null && inside(from.x, f2y) && at(from.x, f2y) == null) res.push({ x: from.x, y: f2y });
+                    // captures
+                    for (const dx of [-1, 1] as const) {
+                        const x = from.x + dx, y = from.y + dir; if (!inside(x, y)) continue; const c = at(x, y); if (c && c.color !== color) res.push({ x, y });
+                    }
+                    break;
+                }
+                default:
+                    break;
+            }
+        };
+
+        // Mimicry movement applies only while it's the mover's turn (approximation without numeric turn)
+        if (mimicMove && currentTurnColor && ((p as any).color === currentTurnColor)) {
+            addByMovement(mimicMove);
+            return res;
+        }
+
         switch (type) {
             case "SLEEPLESS_EYE": { // king
                 for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
@@ -168,32 +250,19 @@ const Board = ({ board }: { board: BoardType | null }) => {
             case "SHADOW_HUNTER": // rook
                 rays([[1, 0], [-1, 0], [0, 1], [0, -1]]);
                 break;
-            case "DOPPELGANGER": // bishop by default
+            case "DOPPELGANGER":
+                // Default bishop movement unless mimicking; already handled above for mimic
                 rays([[1, 1], [1, -1], [-1, 1], [-1, -1]]);
                 break;
-            case "PHOBIC_LEAPER": { // knight
-                const ds = [[1, 2], [2, 1], [-1, 2], [-2, 1], [1, -2], [2, -1], [-1, -2], [-2, -1]];
-                for (const [dx, dy] of ds) {
-                    const x = from.x + dx, y = from.y + dy; if (!inside(x, y)) continue; pushIf(x, y);
-                }
+            case "PHOBIC_LEAPER":
+                addByMovement("knight");
                 break;
-            }
-            case "PSYCHIC_LARVA": { // pawn
-                const dir = color === "white" ? 1 : -1;
-                const f1y = from.y + dir;
-                if (inside(from.x, f1y) && at(from.x, f1y) == null) res.push({ x: from.x, y: f1y });
-                const startRow = color === "white" ? 1 : 6;
-                const f2y = from.y + 2 * dir;
-                if (from.y === startRow && at(from.x, f1y) == null && inside(from.x, f2y) && at(from.x, f2y) == null) res.push({ x: from.x, y: f2y });
-                // captures
-                for (const dx of [-1, 1] as const) {
-                    const x = from.x + dx, y = from.y + dir; if (!inside(x, y)) continue; const c = at(x, y); if (c && c.color !== color) res.push({ x, y });
-                }
+            case "PSYCHIC_LARVA":
+                addByMovement("pawn");
                 break;
-            }
         }
         return res;
-    }, [board]);
+    }, [board, currentTurnColor, unstableLocal, mimicLocal, myColor]);
 
     // Note: Do not early-return here; render a spinner conditionally to keep hooks order stable.
 
@@ -210,6 +279,7 @@ const Board = ({ board }: { board: BoardType | null }) => {
             await new Promise<void>((resolve) => {
                 s.emit("ability:use", { pieceId, name: abilityName, target }, (ack: any) => {
                     if (!ack?.ok) setLastError(ack?.error || "ability_failed");
+                    // Do not auto reselect/show hints on ack; ability:applied will manage visuals
                     resolve();
                 });
             });
@@ -219,7 +289,7 @@ const Board = ({ board }: { board: BoardType | null }) => {
             setAbilityBusy(false);
             setAbilityArm(null);
         }
-    }, []);
+    }, [board, computeHints]);
 
     // Esc to cancel arming
     useEffect(() => {
@@ -230,6 +300,184 @@ const Board = ({ board }: { board: BoardType | null }) => {
         window.addEventListener("keydown", onKey);
         return () => window.removeEventListener("keydown", onKey);
     }, [abilityArm]);
+
+    // Listen for ability:applied to trigger hints after Mimicry (movement override)
+    useEffect(() => {
+        let mounted = true;
+        (async () => {
+            try {
+                const s = await getSocket();
+                const onAbility = (payload: any) => {
+                    if (!mounted) return;
+                    // Clear any stale selection/hints on any ability broadcast
+                    setSelected(null);
+                    setHints([]);
+                    setAbilityTargets([]);
+                    // Mimicry: only the acting player should immediately see the new path; use server-provided movement as local override
+                    if (payload?.ability === "Mimicry" && typeof payload.pieceId === "number") {
+                        const pid = payload.pieceId as number;
+                        const mv = typeof payload.movement === "string" ? payload.movement : null;
+                        // Determine piece ownership from current board snapshot
+                        let pieceColor: "white" | "black" | null = null;
+                        if (board) {
+                            outerFind: for (let y = 0; y < 8; y++) {
+                                for (let x = 0; x < 8; x++) {
+                                    const c = board[y]?.[x];
+                                    if (c && c.id === pid) { pieceColor = (c.color as any) ?? null; break outerFind; }
+                                }
+                            }
+                        }
+                        // Only apply on the client that owns the piece
+                        if (pieceColor && myColor && pieceColor === myColor) {
+                            if (mv) setMimicLocal(prev => ({ ...prev, [pid]: mv }));
+                            setPostAbilitySelectId(pid);
+                        }
+                    } else if (payload?.ability === "Ethereal Passage" && typeof payload.pieceId === "number") {
+                        // Safe to highlight to acting player only as well
+                        const pid = payload.pieceId as number;
+                        let pieceColor: "white" | "black" | null = null;
+                        if (board) {
+                            outerEP: for (let y = 0; y < 8; y++) {
+                                for (let x = 0; x < 8; x++) {
+                                    const c = board[y]?.[x];
+                                    if (c && c.id === pid) { pieceColor = (c.color as any) ?? null; break outerEP; }
+                                }
+                            }
+                        }
+                        if (pieceColor && myColor && pieceColor === myColor) setPostAbilitySelectId(pid);
+                    } else if (payload?.ability === "Terror Leap") {
+                        // Terror Leap completes immediately; ensure no stale path remains on either client
+                        setSelected(null);
+                        setHints([]);
+                        setAbilityTargets([]);
+                    }
+                };
+                const onMoveApplied = (payload: any) => {
+                    if (!mounted) return;
+                    const extra = payload?.extraStepRequired;
+                    if (extra && typeof extra.pieceId === "number") {
+                        const pid = extra.pieceId as number;
+                        // Only the owner of the piece should auto-select and see the forced Unstable step
+                        let pieceColor: "white" | "black" | null = null;
+                        if (board) {
+                            outerM: for (let y = 0; y < 8; y++) {
+                                for (let x = 0; x < 8; x++) {
+                                    const c = board[y]?.[x];
+                                    if (c && c.id === pid) { pieceColor = (c.color as any) ?? null; break outerM; }
+                                }
+                            }
+                        }
+                        if (pieceColor && myColor && pieceColor === myColor) {
+                            setPostAbilitySelectId(pid);
+                            setUnstableLocal(prev => (prev.includes(pid) ? prev : [...prev, pid]));
+                        } else {
+                            // Ensure opponent doesn't see stale highlights
+                            setSelected(null);
+                            setHints([]);
+                            setAbilityTargets([]);
+                        }
+                    }
+                };
+                s.on("ability:applied", onAbility);
+                s.on("move:applied", onMoveApplied);
+            } catch { /* ignore */ }
+        })();
+        return () => {
+            (async () => {
+                try {
+                    const s = await getSocket();
+                    s.off("ability:applied");
+                    s.off("move:applied");
+                } catch { }
+            })();
+            mounted = false;
+        };
+    }, [board, myColor]);
+
+    // Clear local Unstable flags when the turn color flips (i.e., after completing the forced step)
+    const prevTurnRef = useRef<string | null>(null);
+    useEffect(() => {
+        const cur = currentTurnColor ?? null;
+        if (prevTurnRef.current != null && cur !== prevTurnRef.current) {
+            setUnstableLocal([]);
+            setMimicLocal({}); // clear local Mimicry overrides on turn swap
+        }
+        prevTurnRef.current = cur;
+    }, [currentTurnColor]);
+
+    // After board updates, if we have a postAbilitySelectId, select that piece and compute new hints
+    useEffect(() => {
+        if (!board || postAbilitySelectId == null) return;
+        let fx: number | null = null, fy: number | null = null, piece: BoardCell | null = null;
+        for (let y = 0; y < 8; y++) {
+            for (let x = 0; x < 8; x++) {
+                const c = board[y]?.[x];
+                if (c && c.id === postAbilitySelectId) { fx = x; fy = y; piece = c; break; }
+            }
+            if (fx != null) break;
+        }
+        if (fx != null && fy != null && piece) {
+            setSelected({ x: fx, y: fy, pieceId: piece.id });
+            setHints(computeHints({ x: fx, y: fy, pieceId: piece.id }));
+        }
+        setPostAbilitySelectId(null);
+    }, [board, postAbilitySelectId, computeHints]);
+
+    // Compute target highlights while an ability is armed
+    useEffect(() => {
+        if (!abilityArm || !abilityArm.needsTarget || !board) { setAbilityTargets([]); return; }
+        // Find piece position
+        let fx: number | null = null, fy: number | null = null, piece: BoardCell | null = null;
+        for (let y = 0; y < 8; y++) {
+            for (let x = 0; x < 8; x++) {
+                const c = board[y]?.[x];
+                if (c && c.id === abilityArm.pieceId) { fx = x; fy = y; piece = c; break; }
+            }
+            if (fx != null) break;
+        }
+        if (fx == null || fy == null || !piece) { setAbilityTargets([]); return; }
+        const color = piece.color as "white" | "black";
+
+        const inside = (x: number, y: number) => x >= 0 && x < 8 && y >= 0 && y < 8;
+        const at = (x: number, y: number) => (inside(x, y) ? board[y]?.[x] ?? null : null);
+        const targets: Array<{ x: number; y: number }> = [];
+
+        if (abilityArm.pieceType === "PHANTOM_MATRIARCH" && abilityArm.abilityName === "Ethereal Passage") {
+            const dirs: Array<[number, number]> = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+            for (const [dx, dy] of dirs) {
+                for (let s = 1; s < 8; s++) {
+                    const x = fx + dx * s, y = fy + dy * s;
+                    if (!inside(x, y)) break;
+                    const c = at(x, y);
+                    if (c == null) targets.push({ x, y });
+                    // Unlike normal rays, we do NOT break on blockers; we can pass through but cannot land on occupied
+                }
+            }
+        } else if (abilityArm.pieceType === "PHOBIC_LEAPER" && abilityArm.abilityName === "Terror Leap") {
+            const ds = [[3, 2], [2, 3], [-3, 2], [-2, 3], [3, -2], [2, -3], [-3, -2], [-2, -3]];
+            for (const [dx, dy] of ds) {
+                const x = fx + dx, y = fy + dy;
+                if (!inside(x, y)) continue;
+                const c = at(x, y);
+                if (c == null || c.color !== color) targets.push({ x, y });
+            }
+        } else if (abilityArm.pieceType === "DOPPELGANGER" && abilityArm.abilityName === "Mimicry") {
+            // Adjacent non-king pieces (ally or enemy)
+            for (let dx = -1; dx <= 1; dx++) {
+                for (let dy = -1; dy <= 1; dy++) {
+                    if (dx === 0 && dy === 0) continue;
+                    const x = fx + dx, y = fy + dy;
+                    if (!inside(x, y)) continue;
+                    const c = at(x, y);
+                    if (c && (c as any).type !== "SLEEPLESS_EYE") targets.push({ x, y });
+                }
+            }
+        } else {
+            // Default: no custom targets
+        }
+
+        setAbilityTargets(targets);
+    }, [abilityArm, board]);
 
     return (
         <>
@@ -244,115 +492,137 @@ const Board = ({ board }: { board: BoardType | null }) => {
                     {board ? (
                         <div className="grid h-full w-full">
                             {orientedRows.map((row, rowIdxVisual) => {
-                            const actualRowIdx = myColor === "black" ? rowIdxVisual : 7 - rowIdxVisual;
-                            return (
-                                <div key={rowIdxVisual} className="grid grid-cols-8">
-                                    {row.map((_cell, colIdxVisual) => {
-                                        const actualColIdx = myColor === "black" ? 7 - colIdxVisual : colIdxVisual;
-                                        const cell = row[actualColIdx];
-                                        const isDark = (actualRowIdx + actualColIdx) % 2 === 1;
-                                        const isMine = !!cell?.color && (!!myColor ? cell.color === myColor : false);
-                                        const isSelected = selected?.x === actualColIdx && selected?.y === actualRowIdx;
-                                        return (
-                                            <div
-                                                key={colIdxVisual}
-                                                className={`aspect-square flex justify-center items-center relative
+                                const actualRowIdx = myColor === "black" ? rowIdxVisual : 7 - rowIdxVisual;
+                                return (
+                                    <div key={rowIdxVisual} className="grid grid-cols-8">
+                                        {row.map((_cell, colIdxVisual) => {
+                                            const actualColIdx = myColor === "black" ? 7 - colIdxVisual : colIdxVisual;
+                                            const cell = row[actualColIdx];
+                                            const isDark = (actualRowIdx + actualColIdx) % 2 === 1;
+                                            const isMine = !!cell?.color && (!!myColor ? cell.color === myColor : false);
+                                            const isSelected = selected?.x === actualColIdx && selected?.y === actualRowIdx;
+                                            return (
+                                                <div
+                                                    key={colIdxVisual}
+                                                    className={`aspect-square flex justify-center items-center relative
                                                     ${isDark ? "bg-gray-800" : "bg-gray-900"}
                                                     ${isSelected ? "border border-zinc-500" : ""}
                                                     ${cell && isMine ? "cursor-pointer" : "cursor-default"}
                                                     transition-colors duration-150`}
-                                                data-x={actualColIdx}
-                                                data-y={actualRowIdx}
-                                                onClick={() => {
-                                                    // Ability arming: next click selects target square, consume event
-                                                    if (abilityArm) {
-                                                        if (abilityArm.needsTarget) {
-                                                            sendAbility(abilityArm.pieceId, abilityArm.abilityName, { x: actualColIdx, y: actualRowIdx });
-                                                        } else {
-                                                            sendAbility(abilityArm.pieceId, abilityArm.abilityName);
+                                                    data-x={actualColIdx}
+                                                    data-y={actualRowIdx}
+                                                    onClick={() => {
+                                                        // Ability arming: next click selects target square, consume event
+                                                        if (abilityArm) {
+                                                            if (abilityArm.needsTarget) {
+                                                                // Only send if the clicked square is one of the highlighted ability targets
+                                                                const isTarget = abilityTargets.some(t => t.x === actualColIdx && t.y === actualRowIdx);
+                                                                if (!isTarget) return;
+                                                                sendAbility(abilityArm.pieceId, abilityArm.abilityName, { x: actualColIdx, y: actualRowIdx });
+                                                            } else {
+                                                                sendAbility(abilityArm.pieceId, abilityArm.abilityName);
+                                                            }
+                                                            return;
                                                         }
-                                                        return;
-                                                    }
-                                                    // Removed: opening abilities on click (so moves aren’t blocked)
-                                                    if (finished) return;
-                                                    if (pendingMove) return;
-                                                    if (!myColor) return;
+                                                        // Removed: opening abilities on click (so moves aren’t blocked)
+                                                        if (finished) return;
+                                                        if (pendingMove) return;
+                                                        if (!myColor) return;
 
-                                                    if (cell && cell.color && isMine) {
-                                                        setSelected({ x: actualColIdx, y: actualRowIdx, pieceId: cell.id });
-                                                        if (currentTurnColor === myColor) setHints(computeHints({ x: actualColIdx, y: actualRowIdx, pieceId: cell.id }));
-                                                        else setHints([]);
-                                                        return;
-                                                    }
-                                                    if (selected && (selected.x !== actualColIdx || selected.y !== actualRowIdx)) {
-                                                        attemptMove({ x: selected.x, y: selected.y, pieceId: selected.pieceId }, { x: actualColIdx, y: actualRowIdx });
-                                                    } else {
-                                                        setSelected(null);
-                                                        setHints([]);
-                                                    }
-                                                }}
-                                                onDragOver={(e) => {
-                                                    if (pendingMove) return;
-                                                    if (selected) e.preventDefault();
-                                                }}
-                                                onDrop={(e) => {
-                                                    e.preventDefault();
-                                                    if (finished) return;
-                                                    if (pendingMove) return;
-                                                    if (!selected) return;
-                                                    attemptMove({ x: selected.x, y: selected.y, pieceId: selected.pieceId }, { x: actualColIdx, y: actualRowIdx });
-                                                }}
-                                            >
-                                                {cell && cell.color && (
-                                                    <Cell
-                                                        mappedImages={PIECE_IMAGES}
-                                                        cell={cell}
-                                                        isMine={isMine}
-                                                        onDragStart={() => {
-                                                            if (pendingMove) return;
-                                                            if (!myColor || !isMine) return;
+                                                        if (cell && cell.color && isMine) {
+                                                            // Clicking the same selected square cancels selection
+                                                            if (selected && selected.x === actualColIdx && selected.y === actualRowIdx) {
+                                                                setSelected(null);
+                                                                setHints([]);
+                                                                return;
+                                                            }
                                                             setSelected({ x: actualColIdx, y: actualRowIdx, pieceId: cell.id });
-                                                            if (currentTurnColor === myColor) setHints(computeHints({ x: actualColIdx, y: actualRowIdx, pieceId: cell.id }));
-                                                            else setHints([]);
-                                                        }}
-                                                        onOpenAbilities={() => openAbilities(cell)}
-                                                    />
-                                                )}
+                                                            // Always show paths on selection so users can see new paths after abilities
+                                                            setHints(computeHints({ x: actualColIdx, y: actualRowIdx, pieceId: cell.id }));
+                                                            return;
+                                                        }
+                                                        if (selected && (selected.x !== actualColIdx || selected.y !== actualRowIdx)) {
+                                                            attemptMove({ x: selected.x, y: selected.y, pieceId: selected.pieceId }, { x: actualColIdx, y: actualRowIdx });
+                                                        } else {
+                                                            setSelected(null);
+                                                            setHints([]);
+                                                        }
+                                                    }}
+                                                    onDragOver={(e) => {
+                                                        if (pendingMove) return;
+                                                        if (selected) e.preventDefault();
+                                                    }}
+                                                    onDrop={(e) => {
+                                                        e.preventDefault();
+                                                        if (finished) return;
+                                                        if (pendingMove) return;
+                                                        if (!selected) return;
+                                                        // Cancel if dropped onto the original square
+                                                        if (selected.x === actualColIdx && selected.y === actualRowIdx) {
+                                                            setSelected(null);
+                                                            setHints([]);
+                                                            return;
+                                                        }
+                                                        attemptMove({ x: selected.x, y: selected.y, pieceId: selected.pieceId }, { x: actualColIdx, y: actualRowIdx });
+                                                    }}
+                                                >
+                                                    {cell && cell.color && (
+                                                        <Cell
+                                                            mappedImages={PIECE_IMAGES}
+                                                            cell={cell}
+                                                            isMine={isMine}
+                                                            onDragStart={() => {
+                                                                if (pendingMove) return;
+                                                                if (!myColor || !isMine) return;
+                                                                // If an ability was armed, cancel it so dragging works seamlessly
+                                                                if (abilityArm) setAbilityArm(null);
+                                                                setSelected({ x: actualColIdx, y: actualRowIdx, pieceId: cell.id });
+                                                                // Show paths even if not our turn (attemptMove will still guard turn)
+                                                                setHints(computeHints({ x: actualColIdx, y: actualRowIdx, pieceId: cell.id }));
+                                                            }}
+                                                            onOpenAbilities={() => openAbilities(cell)}
+                                                        />
+                                                    )}
 
-                                                {/* Ability button for the selected piece (tap to open) */}
-                                                {isSelected && cell && (
-                                                    <button
-                                                        className="absolute top-1 right-1 h-6 w-6 rounded-md bg-black/60 text-fuchsia-200 ring-1 ring-neutral-800 hover:bg-black/80"
-                                                        onClick={(e) => { e.stopPropagation(); openAbilities(cell); }}
-                                                        aria-label="Show abilities"
-                                                        title="Show abilities"
-                                                    >
-                                                        ☽
-                                                    </button>
-                                                )}
+                                                    {/* Ability button for the selected piece (tap to open) */}
+                                                    {isSelected && cell && (
+                                                        <button
+                                                            className="absolute top-1 right-1 h-6 w-6 rounded-md bg-black/60 text-fuchsia-200 ring-1 ring-neutral-800 hover:bg-black/80"
+                                                            onClick={(e) => { e.stopPropagation(); openAbilities(cell); }}
+                                                            aria-label="Show abilities"
+                                                            title="Show abilities"
+                                                        >
+                                                            ☽
+                                                        </button>
+                                                    )}
 
-                                                {/* Move hint dot (hidden while a move is pending) */}
-                                                {!pendingMove && hints.some(h => h.x === actualColIdx && h.y === actualRowIdx) && (
-                                                    <span className="absolute w-3 h-3 rounded-full bg-foreground" style={{ pointerEvents: "none" }}></span>
-                                                )}
+                                                    {/* Move hint dot (hidden while a move is pending or when an ability is armed) */}
+                                                    {!pendingMove && !abilityArm && hints.some(h => h.x === actualColIdx && h.y === actualRowIdx) && (
+                                                        <span className="absolute w-3 h-3 rounded-full bg-foreground" style={{ pointerEvents: "none" }}></span>
+                                                    )}
 
-                                                {/* Coordinates */}
-                                                {rowIdxVisual === 7 && (
-                                                    <span className="absolute bottom-0.5 right-1 text-[8px] text-foreground">
-                                                        {String.fromCharCode(97 + (myColor === "black" ? 7 - colIdxVisual : colIdxVisual))}
-                                                    </span>
-                                                )}
-                                                {colIdxVisual === 0 && (
-                                                    <span className="absolute top-0.5 left-1 text-[8px] text-foreground">
-                                                        {myColor === "black" ? rowIdxVisual + 1 : 8 - rowIdxVisual}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            );
-                        })}
+                                                    {/* Ability target highlight while arming (use dot style like move hints) */}
+                                                    {abilityArm && abilityArm.needsTarget && abilityTargets.some(t => t.x === actualColIdx && t.y === actualRowIdx) && (
+                                                        <span className="absolute w-3 h-3 rounded-full bg-foreground" style={{ pointerEvents: "none" }}></span>
+                                                    )}
+
+                                                    {/* Coordinates */}
+                                                    {rowIdxVisual === 7 && (
+                                                        <span className="absolute bottom-0.5 right-1 text-[8px] text-foreground">
+                                                            {String.fromCharCode(97 + (myColor === "black" ? 7 - colIdxVisual : colIdxVisual))}
+                                                        </span>
+                                                    )}
+                                                    {colIdxVisual === 0 && (
+                                                        <span className="absolute top-0.5 left-1 text-[8px] text-foreground">
+                                                            {myColor === "black" ? rowIdxVisual + 1 : 8 - rowIdxVisual}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                );
+                            })}
                         </div>
                     ) : (
                         <div className="flex justify-center items-center h-full">
@@ -414,10 +684,14 @@ const Board = ({ board }: { board: BoardType | null }) => {
                     setAbilityPiece(null);
                     if (needsTarget) {
                         // Enter arming mode; next square click will send
+                        setHints([]); // clear old path; show only ability targets
                         setAbilityArm({ pieceId: abilityPiece.id, pieceType, abilityName, needsTarget: true });
                     } else {
                         // Fire immediately
                         setAbilityArm({ pieceId: abilityPiece.id, pieceType, abilityName, needsTarget: false });
+                        // For instantaneous abilities like Terror Leap, clear current selection/hints immediately
+                        setSelected(null);
+                        setHints([]);
                         sendAbility(abilityPiece.id, abilityName);
                     }
                 }}
