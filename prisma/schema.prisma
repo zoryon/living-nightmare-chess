@@ -65,7 +65,7 @@ model match_player {
   userId      Int?
   matchId     Int
   color       match_player_color
-  dreamEnergy Int                @default(10)
+  dreamEnergy Int                @default(20)
   user        user?              @relation(fields: [userId], references: [id], onUpdate: NoAction, map: "match_player_ibfk_1")
   match       match              @relation(fields: [matchId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "match_player_ibfk_2")
 
