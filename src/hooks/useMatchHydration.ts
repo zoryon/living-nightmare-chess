@@ -13,7 +13,7 @@ import type { GameState } from "@/types";
  * Connects to the WS server, requests current state, and listens for updates.
  */
 export function useMatchHydration(matchId: number) {
-    const { setBoard, setGameId, setMyUserId, setMyColor, setCurrentTurnColor, setWhiteMs, setBlackMs, setClocksSyncedAt, setFinished, setWinnerId, setFinishReason, setHydrated } = useMatch();
+    const { setBoard, setGameId, setMyUserId, setMyColor, setCurrentTurnColor, setWhiteMs, setBlackMs, setClocksSyncedAt, setFinished, setWinnerId, setFinishReason, setHydrated, setWhiteDE, setBlackDE } = useMatch();
     const socketRef = useRef<Socket | null>(null);
 
     useEffect(() => {
@@ -56,6 +56,12 @@ export function useMatchHydration(matchId: number) {
                     if (m && typeof m.turn === "number") {
                         setCurrentTurnColor(m.turn % 2 === 1 ? "white" : "black");
                     }
+                    if (m && Array.isArray(m.match_player)) {
+                        const white = m.match_player.find((p: any) => p.color === "WHITE");
+                        const black = m.match_player.find((p: any) => p.color === "BLACK");
+                        setWhiteDE(typeof white?.dreamEnergy === "number" ? white.dreamEnergy : null);
+                        setBlackDE(typeof black?.dreamEnergy === "number" ? black.dreamEnergy : null);
+                    }
                     if (payload?.clocks && typeof payload.clocks.whiteMs === "number" && typeof payload.clocks.blackMs === "number") {
                         setWhiteMs(payload.clocks.whiteMs);
                         setBlackMs(payload.clocks.blackMs);
@@ -80,6 +86,12 @@ export function useMatchHydration(matchId: number) {
                         const m = res.match as GameState;
                         if (m && typeof (m as any).turn === "number") {
                             setCurrentTurnColor((m as any).turn % 2 === 1 ? "white" : "black");
+                        }
+                        if (m && Array.isArray((m as any).match_player)) {
+                            const white = (m as any).match_player.find((p: any) => p.color === "WHITE");
+                            const black = (m as any).match_player.find((p: any) => p.color === "BLACK");
+                            setWhiteDE(typeof white?.dreamEnergy === "number" ? white.dreamEnergy : null);
+                            setBlackDE(typeof black?.dreamEnergy === "number" ? black.dreamEnergy : null);
                         }
                         if (res?.clocks && typeof res.clocks.whiteMs === "number" && typeof res.clocks.blackMs === "number") {
                             setWhiteMs(res.clocks.whiteMs);

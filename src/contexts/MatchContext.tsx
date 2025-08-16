@@ -20,6 +20,11 @@ type MatchContextType = {
     blackMs: number | null;
     setWhiteMs: (ms: number | null) => void;
     setBlackMs: (ms: number | null) => void;
+    // Dream Energy per side (server-authoritative)
+    whiteDE: number | null;
+    blackDE: number | null;
+    setWhiteDE: (de: number | null) => void;
+    setBlackDE: (de: number | null) => void;
     // Timestamp when clocks were synced (Date.now())
     clocksSyncedAt: number | null;
     setClocksSyncedAt: (ts: number | null) => void;
@@ -46,6 +51,8 @@ export function MatchProvider({ children }: { children: React.ReactNode }) {
     const [currentTurnColor, setCurrentTurnColor] = useState<PlayerColor | null>(null);
     const [whiteMs, setWhiteMs] = useState<number | null>(null);
     const [blackMs, setBlackMs] = useState<number | null>(null);
+    const [whiteDE, setWhiteDE] = useState<number | null>(null);
+    const [blackDE, setBlackDE] = useState<number | null>(null);
     const [clocksSyncedAt, setClocksSyncedAt] = useState<number | null>(null);
     const [finished, setFinished] = useState<boolean>(false);
     const [winnerId, setWinnerId] = useState<number | null>(null);
@@ -53,7 +60,7 @@ export function MatchProvider({ children }: { children: React.ReactNode }) {
     const [hydrated, setHydrated] = useState<boolean>(false);
 
     return (
-        <MatchContext.Provider value={{ board, setBoard, gameId, setGameId, myUserId, setMyUserId, myColor, setMyColor, currentTurnColor, setCurrentTurnColor, whiteMs, blackMs, setWhiteMs, setBlackMs, clocksSyncedAt, setClocksSyncedAt, finished, setFinished, winnerId, setWinnerId, finishReason, setFinishReason, hydrated, setHydrated }}>
+        <MatchContext.Provider value={{ board, setBoard, gameId, setGameId, myUserId, setMyUserId, myColor, setMyColor, currentTurnColor, setCurrentTurnColor, whiteMs, blackMs, setWhiteMs, setBlackMs, whiteDE, blackDE, setWhiteDE, setBlackDE, clocksSyncedAt, setClocksSyncedAt, finished, setFinished, winnerId, setWinnerId, finishReason, setFinishReason, hydrated, setHydrated }}>
             {children}
         </MatchContext.Provider>
     );

@@ -11,7 +11,7 @@ function format(ms: number) {
 }
 
 export default function Clocks() {
-    const { myColor, currentTurnColor, whiteMs, blackMs, clocksSyncedAt } = useMatch();
+    const { myColor, currentTurnColor, whiteMs, blackMs, clocksSyncedAt, whiteDE, blackDE } = useMatch();
     const [now, setNow] = useState<number>(() => Date.now());
     const raf = useRef<number | null>(null);
 
@@ -42,15 +42,34 @@ export default function Clocks() {
     const whiteLabel = myColor === "white" ? "You" : "Opponent";
     const blackLabel = myColor === "black" ? "You" : "Opponent";
 
+    const maxDE = 20;
+    const deBar = (val: number | null) => {
+        const v = Math.max(0, Math.min(maxDE, val ?? 0));
+        const pct = (v / maxDE) * 100;
+        return (
+            <div className="mt-1 h-2 w-full bg-neutral-800 rounded overflow-hidden" aria-label="Dream Energy">
+                <div className="h-full bg-fuchsia-500" style={{ width: `${pct}%` }} />
+            </div>
+        );
+    };
+
     return (
         <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
             <div className={`rounded-md border px-3 py-2 ${currentTurnColor === "white" ? "border-emerald-500" : "border-gray-700"}`}>
-                <div className="text-gray-400">{whiteLabel} (White)</div>
+                <div className="flex items-center justify-between">
+                    <div className="text-gray-400">{whiteLabel} (White)</div>
+                    <div className="text-xs text-fuchsia-200">DE {whiteDE ?? "--"}/{maxDE}</div>
+                </div>
                 <div className="text-xl font-mono">{whiteDisplay == null ? "--:--" : format(whiteDisplay)}</div>
+                {deBar(whiteDE)}
             </div>
             <div className={`rounded-md border px-3 py-2 ${currentTurnColor === "black" ? "border-emerald-500" : "border-gray-700"}`}>
-                <div className="text-gray-400">{blackLabel} (Black)</div>
+                <div className="flex items-center justify-between">
+                    <div className="text-gray-400">{blackLabel} (Black)</div>
+                    <div className="text-xs text-fuchsia-200">DE {blackDE ?? "--"}/{maxDE}</div>
+                </div>
                 <div className="text-xl font-mono">{blackDisplay == null ? "--:--" : format(blackDisplay)}</div>
+                {deBar(blackDE)}
             </div>
         </div>
     );
