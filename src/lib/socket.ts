@@ -55,7 +55,7 @@ export async function getSocket(): Promise<Socket> {
 
   connecting = new Promise<Socket>((resolve, reject) => {
     const s = io(url, {
-      transports: ["websocket"], // no long-polling to avoid CORS cookie weirdness
+      transports: ["websocket", "polling"],
       withCredentials: false, // we authenticate via jwt in auth payload
       auth: { token },
       autoConnect: true,
