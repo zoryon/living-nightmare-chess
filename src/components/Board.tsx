@@ -472,6 +472,14 @@ const Board = ({ board }: { board: BoardType | null }) => {
                     if (c && (c as any).type !== "SLEEPLESS_EYE") targets.push({ x, y });
                 }
             }
+        } else if (abilityArm.pieceType === "PSYCHIC_LARVA" && abilityArm.abilityName === "Whispering Swarm") {
+            // Only empty horizontal-adjacent squares
+            const candidates: Array<[number, number]> = [[fx - 1, fy], [fx + 1, fy]];
+            for (const [x, y] of candidates) {
+                if (!inside(x, y)) continue;
+                const c = at(x, y);
+                if (c == null) targets.push({ x, y });
+            }
         } else {
             // Default: no custom targets
         }
@@ -679,6 +687,7 @@ const Board = ({ board }: { board: BoardType | null }) => {
                         "SHADOW_HUNTER:Shadow Bind",
                         "PHOBIC_LEAPER:Terror Leap",
                         "PHANTOM_MATRIARCH:Ethereal Passage",
+                        "PSYCHIC_LARVA:Whispering Swarm",
                     ]);
                     const needsTarget = targeted.has(key);
                     setAbilityPiece(null);

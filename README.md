@@ -27,29 +27,30 @@ Each player starts the game with **10 Dream Energy (DE) points**.
 
 ### 2. Nightmare Phases
 
-The game is divided into phases triggered by the progression of turns.  
-Each phase introduces a new global rule that stacks with the previous ones.
+The match unfolds in escalating phases, each unlocked as turns progress.
+Every new phase introduces an additional global rule that stacks with the previous ones, steadily pushing the game into chaos.
 
 - **Turns 1–4: The Calm Before the Storm**  
-  - Only base rules and piece abilities apply.
+  - Standard chess rules only. No abilities are active yet.
 
-- **Turns 4–20: Creeping Shadows**  
-  - All pieces (except Kings and Pawns) gain an additional movement option: once during this phase, they may move **one square diagonally**, even if this is not part of their standard move. This movement cannot be used to capture.
+- **Turns 4–40: Creeping Shadows**  
+  - All pieces gain their passive and active abilities.
 
-- **Turns 21–30: Unstable Ground**  
-  - At the start of their turn, each player rolls an 8-sided die (or uses an online generator to pick a number from 1 to 8) to determine a **row** (1–8) and a **column** (A–H). The resulting square becomes **"dangerous"** for that turn. Any piece ending its move on that square cannot move on the following turn.
+- **Turns 41–60: Unstable Ground**  
+  - At the start of each turn, a random square becomes **"dangerous"** for that turn. 
+  - Any piece ending its move on that square is immobilized for its next turn.
 
-- **Turn 31 and beyond: Total Chaos**  
-  - The passive abilities of all pieces are doubled in effect (if possible) or also affect adjacent squares.  
-    Example: The King's *"Field of Fear"* now extends **two squares** instead of one.
+- **Turn 61 and beyond: Total Chaos**  
+  - Each player’s Dream Energy is tripled.
+  - All active abilities are fully refreshed and can be used again.
 
 ### 3. Corrupted Promotion
 
-When a **Psychic Larva** (Pawn) reaches the 8th rank, it is not promoted to a standard piece.  
-Instead, the player may choose one of the following:
+When a **Psychic Larva** (Pawn) reaches the 8th rank, it does not follow normal chess promotion.  
+Instead, the player must choose one of the following outcomes:
 
-1. **Summon a Nightmare:** Remove the Larva and return a captured *Living Nightmare* piece (Banshee, Hunter, Doppelgänger, or Leaper) to the promotion square.
-2. **Infestation:** Remove the Larva and place **three new Psychic Larvae** on any two empty squares of the player's starting row.
+1. **Summon a Nightmare:** Remove the Larva and return *Living Nightmare* piece (Matriarch, Hunter, Doppelgänger, or Leaper) to the promotion square.
+2. **Infestation:** Remove the Larva and place **three new Psychic Larvae** on any three empty squares of the player's starting row.
 
 ---
 
@@ -66,15 +67,9 @@ Instead, the player may choose one of the following:
 | **Shadow Hunter** *(Rook)* | 2 | Rook | **Shadow Leap**: Once per game, if the other allied Hunter is captured, teleport to its starting square. | 2 | **Camouflage**: If it doesn’t move for an entire turn, it cannot be captured on the opponent’s next turn. |
 | **Doppelgänger** *(Bishop)* | 2 | Bishop | **Mimicry**: If adjacent to another piece (friend or foe, excluding the King), copy its *default movement* for that turn. | 2 | **Unstable Form**: After capturing, must immediately move 1 additional legal square if possible. |
 | **Phobic Leaper** *(Knight)* | 2 | Knight | **Terror Leap**: Make a long jump in an L-shape of 3×2 squares instead of 2×1. | 3 | **Fearful Terrain**: Squares the Leaper attacks are “uneasy”. If a sliding piece starts inside the Leaper’s attack range and moves through an uneasy square to exit that range, it must spend 1 Dream Energy to complete the move. |
-| **Psychic Larva** *(Pawn)* | 8 | Pawn | **Psychic Burst**: When capturing, enemy pieces adjacent to the captured piece cannot move next turn. Once per Larva. | 1 | **Psychic Gateway**: When two Larvas are aligned diagonally with exactly one empty square between them, that square becomes a 'psychic gateway'. Any friendly piece moving into it may immediately move again as if it had just started its turn. |
+| **Psychic Larva** *(Pawn)* | 8 | Pawn | **Whispering Swarm**: If one friendly Psychic Larva has been captured by the enemy, you may summon one new Larva on an empty square horizontally adjacent to this piece. | 2 | **Psychic Gateway**: When two Larvas are aligned diagonally with exactly one empty square between them, that square becomes a 'psychic gateway'. Any friendly piece moving into it may immediately move again as if it had just started its turn. |
 
 ---
-
-### Design Notes
-- Use of medieval-fantasy motifs with subtle magical elements.
-- Color palettes:
-  - Dawnlight: Gold, white, blue accents.
-  - Shadow: Purple, crimson, black accents.
 
 ## Technical Stack
 
@@ -82,13 +77,11 @@ Instead, the player may choose one of the following:
 - **Backend**: Node.js, Next.js API routes, TypeScript.
 - **Realtime Communication**: WebSockets (Socket.IO recommended).
 - **Database**: Oracle MySQL with Prisma ORM.
-- **Caching / Active Game State**: Redis (only if free forever, otherwise not used).
 - **API Type**: REST APIs for core user and match management, WebSocket events for real-time gameplay.
 - **Hosting Suggestions**:  
   - Frontend: Vercel  
-  - Backend WS server: Fly.io or Railway  
+  - Backend WS server: Render, Fly.io, Railway  
   - DB: Oracle MySQL cloud or equivalent  
-  - Redis: Upstash (if chosen)
 
 ## License
 

@@ -80,7 +80,7 @@ export const PIECES: Record<string, PieceType> = {
         passiveAbility: {
             name: "Unstable Form",
             trigger: "passive",
-            description: "If possible, immediately move 1 additional legal square (cannot capture the enemy's sleepless eye)",
+            description: "If possible, immediately move 1 additional legal square (can only capture Larvas or Doppelgangers)",
             // Implemented in engine/validator.ts: require an immediate extra step after
             effect: () => {}
         }
@@ -111,19 +111,19 @@ export const PIECES: Record<string, PieceType> = {
         quantity: 8,
         defaultMovement: "pawn",
         activeAbility: {
-            name: "Psychic Burst",
+            name: "Whispering Swarm",
             trigger: "active",
-            cost: 1,
+            cost: 2,
             maxUses: 1,
-            description: "When capturing, enemy pieces adjacent to the captured piece cannot move next turn",
+            description: "If one friendly Psychic Larva has been captured by the enemy, you may summon one new Larva on an empty square horizontally adjacent to this piece.",
             // Implemented in engine/abilities.ts and enforced on capture in engine/validator.ts
             effect: () => {}
         },
         passiveAbility: {
-            name: "Mental Echo",
+            name: "Psychic Gateway",
             trigger: "passive",
-            description: "When captured, the captor must declare its next intended move (if it plans to move that piece) at the start of its turn.",
-            // Implemented across engine/validator.ts and socket in game.ts via echo:declare
+            description: "When two Larvas are aligned diagonally with exactly one empty square between them, that square becomes a 'psychic gateway'. Any friendly piece moving into it may immediately move again (can only capture Larvas).",
+            // TODO: Implement in engine/validator.ts: detect friendly diagonal Larva pair -> mark middle square; on landing there, allow an optional immediate extra move with the same piece.
             effect: () => {}
         }
     },
