@@ -2,7 +2,7 @@ import { PieceImagesType, PieceType } from "@/types";
 
 export const PIECES: Record<string, PieceType> = {
     SLEEPLESS_EYE: {
-        name: 'Sleepless Eye',
+        name: "Sleepless Eye",
         quantity: 1,
         defaultMovement: "king",
         activeAbility: {
@@ -30,7 +30,7 @@ export const PIECES: Record<string, PieceType> = {
             name: "Ethereal Passage",
             trigger: "active",
             cost: 5,
-            maxUses: 2,
+            maxUses: 1,
             description: "Move on a legal square ignoring all pieces (cannot capture nor check the Sleepless Eye)",
             // Implemented in engine/abilities.ts
             effect: () => {}
@@ -48,19 +48,19 @@ export const PIECES: Record<string, PieceType> = {
         quantity: 2,
         defaultMovement: "rook",
         activeAbility: {
-            name: "Shadow Bind",
+            name: "Shadow swap",
             trigger: "active",
-            cost: 3,
-            maxUses: 1,
-            description: "Targets an enemy piece on an adjacent diagonal square. That piece cannot move on the opponent's next turn.",
+            cost: 2,
+            maxUses: 2,
+            description: "Move normally and optionally swap places with one friendly piece along the path. Cannot capture during this move.",
             // Implemented in engine/abilities.ts
             effect: () => {}
         },
         passiveAbility: {
             name: "Camouflage",
             trigger: "passive",
-            description: "If not moved, it cannot be captured on the opponent's next turn",
-            // Implemented in engine/validator.ts: set camouflagedUntilTurn for idle Hunters
+            description: "If the Hunter does not move on its turn, it cannot be captured by Psychic Larvas  on the opponent's next turn.",
+            // Implemented in engine/validator.ts: set camouflagedUntilTurn for idle Hunters (larva-only restriction)
             effect: () => {}
         }
     },
@@ -71,8 +71,8 @@ export const PIECES: Record<string, PieceType> = {
         activeAbility: {
             name: "Mimicry",
             trigger: "active",
-            cost: 2,
-            maxUses: 4,
+            cost: 6,
+            maxUses: 1,
             description: "Copy the default movement of an adjacent piece (excluding the King), for one turn",
             // Implemented in engine/abilities.ts
             effect: () => {}
@@ -93,7 +93,7 @@ export const PIECES: Record<string, PieceType> = {
             name: "Terror Leap",
             trigger: "active",
             cost: 3,
-            maxUses: 4,
+            maxUses: 2,
             description: "Make a long jump in an L-shape of 3x2 squares",
             // Implemented in engine/abilities.ts
             effect: () => {}

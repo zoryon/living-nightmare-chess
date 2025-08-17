@@ -442,7 +442,7 @@ const Board = ({ board }: { board: BoardType | null }) => {
         const at = (x: number, y: number) => (inside(x, y) ? board[y]?.[x] ?? null : null);
         const targets: Array<{ x: number; y: number }> = [];
 
-        if (abilityArm.pieceType === "PHANTOM_MATRIARCH" && abilityArm.abilityName === "Ethereal Passage") {
+    if (abilityArm.pieceType === "PHANTOM_MATRIARCH" && abilityArm.abilityName === "Ethereal Passage") {
             const dirs: Array<[number, number]> = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
             for (const [dx, dy] of dirs) {
                 for (let s = 1; s < 8; s++) {
@@ -479,6 +479,26 @@ const Board = ({ board }: { board: BoardType | null }) => {
                 if (!inside(x, y)) continue;
                 const c = at(x, y);
                 if (c == null) targets.push({ x, y });
+            }
+        } else if (abilityArm.pieceType === "SHADOW_HUNTER" && abilityArm.abilityName === "Shadow swap") {
+            // Rook-like rays; can land on empty squares and also on allied pieces (to swap). Enemies along path or at dest block.
+            const dirs: Array<[number, number]> = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+            for (const [dx, dy] of dirs) {
+                let x = fx + dx, y = fy + dy;
+                while (inside(x, y)) {
+                    const c = at(x, y);
+                    if (c == null) {
+                        targets.push({ x, y });
+                    } else {
+                        if (c.color === color) {
+                            // Ally at destination: can target to swap, but cannot go past
+                            targets.push({ x, y });
+                        }
+                        // Enemy blocks; stop in both cases after encountering any piece
+                        break;
+                    }
+                    x += dx; y += dy;
+                }
             }
         } else {
             // Default: no custom targets
@@ -684,7 +704,7 @@ const Board = ({ board }: { board: BoardType | null }) => {
                     const targeted = new Set<string>([
                         "SLEEPLESS_EYE:Terrifying Gaze",
                         "DOPPELGANGER:Mimicry",
-                        "SHADOW_HUNTER:Shadow Bind",
+                        "SHADOW_HUNTER:Shadow swap",
                         "PHOBIC_LEAPER:Terror Leap",
                         "PHANTOM_MATRIARCH:Ethereal Passage",
                         "PSYCHIC_LARVA:Whispering Swarm",
