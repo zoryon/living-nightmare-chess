@@ -8,7 +8,7 @@ import PieceAbilities from "@/components/PieceAbilities";
 
 const Board = ({ board }: { board: BoardType | null }) => {
     const [isVisible, setIsVisible] = useState(false);
-    const { myColor, currentTurnColor, finished, setCurrentTurnColor, setBoard: setBoardCtx, whiteMs, blackMs, setWhiteMs, setBlackMs, clocksSyncedAt, setClocksSyncedAt } = useMatch();
+    const { myColor, currentTurnColor, finished, setCurrentTurnColor, setBoard: setBoardCtx, whiteMs, blackMs, setWhiteMs, setBlackMs, clocksSyncedAt, setClocksSyncedAt, phase, dangerousSquare } = useMatch();
     const [selected, setSelected] = useState<{ x: number; y: number; pieceId: number } | null>(null);
     const [lastError, setLastError] = useState<string | null>(null);
     const [hints, setHints] = useState<Array<{ x: number; y: number }>>([]);
@@ -268,8 +268,11 @@ const Board = ({ board }: { board: BoardType | null }) => {
 
     // Centralized ability opener (used by long-press, right-click, and the small button)
     const openAbilities = useCallback((p: BoardCell | null) => {
-        if (p && p.color) setAbilityPiece(p);
-    }, []);
+        if (!p || !p.color) return;
+        // In CALM, abilities are disabled by rules; don't open the panel
+        if (phase === "CALM") return;
+        setAbilityPiece(p);
+    }, [phase]);
 
     // Ability use helper (handles ack + errors)
     const sendAbility = useCallback(async (pieceId: number, abilityName: string, target?: any) => {
@@ -527,6 +530,7 @@ const Board = ({ board }: { board: BoardType | null }) => {
                                             const actualColIdx = myColor === "black" ? 7 - colIdxVisual : colIdxVisual;
                                             const cell = row[actualColIdx];
                                             const isDark = (actualRowIdx + actualColIdx) % 2 === 1;
+                                            const isDanger = (phase === "UNSTABLE") && !!dangerousSquare && dangerousSquare.x === actualColIdx && dangerousSquare.y === actualRowIdx;
                                             const isMine = !!cell?.color && (!!myColor ? cell.color === myColor : false);
                                             const isSelected = selected?.x === actualColIdx && selected?.y === actualRowIdx;
                                             return (
@@ -613,7 +617,7 @@ const Board = ({ board }: { board: BoardType | null }) => {
                                                     )}
 
                                                     {/* Ability button for the selected piece (tap to open) */}
-                                                    {isSelected && cell && (
+                                                    {isSelected && cell && phase !== "CALM" && (
                                                         <button
                                                             className="absolute top-1 right-1 size-1.5 md:size-6 rounded-md bg-black/60 text-fuchsia-200 ring-1 ring-neutral-800 hover:bg-black/80"
                                                             onClick={(e) => { e.stopPropagation(); openAbilities(cell); }}
@@ -632,6 +636,11 @@ const Board = ({ board }: { board: BoardType | null }) => {
                                                     {/* Ability target highlight while arming (use dot style like move hints) */}
                                                     {abilityArm && abilityArm.needsTarget && abilityTargets.some(t => t.x === actualColIdx && t.y === actualRowIdx) && (
                                                         <span className="absolute w-3 h-3 rounded-full bg-foreground" style={{ pointerEvents: "none" }}></span>
+                                                    )}
+
+                                                    {/* Dangerous square overlay (UNSTABLE): greenish tint */}
+                                                    {isDanger && (
+                                                        <span className="absolute inset-0 bg-emerald-400/25 ring-1 ring-emerald-500/40 pointer-events-none" />
                                                     )}
 
                                                     {/* Coordinates */}
@@ -692,12 +701,14 @@ const Board = ({ board }: { board: BoardType | null }) => {
                 canUse={(() => {
                     if (!abilityPiece || !myColor || finished) return false;
                     if (currentTurnColor !== myColor) return false;
+                    if (phase === "CALM") return false;
                     return abilityPiece.color === myColor;
                 })()}
                 onUseActive={(abilityName) => {
                     if (!abilityPiece || !myColor || finished) return;
                     if (currentTurnColor !== myColor) return; // not your turn
                     if (abilityPiece.color !== myColor) return; // not your piece
+                    if (phase === "CALM") return; // abilities disabled in Calm
                     if (!abilityPiece) return;
                     const pieceType = abilityPiece.type as string;
                     const key = `${pieceType}:${abilityName}`;

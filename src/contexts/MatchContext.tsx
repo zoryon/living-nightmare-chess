@@ -39,6 +39,12 @@ type MatchContextType = {
     hydrated: boolean;
     setHydrated: (v: boolean) => void;
     // Should add more match-related states (turn, players, status)
+    phase: "CALM" | "SHADOWS" | "UNSTABLE" | "CHAOS" | null;
+    setPhase: (p: MatchContextType["phase"]) => void;
+    nextPhase: { name: "CALM" | "SHADOWS" | "UNSTABLE" | "CHAOS"; inTurns: number } | null;
+    setNextPhase: (n: { name: "CALM" | "SHADOWS" | "UNSTABLE" | "CHAOS"; inTurns: number } | null) => void;
+    dangerousSquare: { x: number; y: number } | null;
+    setDangerousSquare: (d: { x: number; y: number } | null) => void;
 };
 
 const MatchContext = createContext<MatchContextType | undefined>(undefined);
@@ -58,9 +64,12 @@ export function MatchProvider({ children }: { children: React.ReactNode }) {
     const [winnerId, setWinnerId] = useState<number | null>(null);
     const [finishReason, setFinishReason] = useState<string | null>(null);
     const [hydrated, setHydrated] = useState<boolean>(false);
+    const [phase, setPhase] = useState<MatchContextType["phase"]>(null);
+    const [nextPhase, setNextPhase] = useState<MatchContextType["nextPhase"]>(null);
+    const [dangerousSquare, setDangerousSquare] = useState<MatchContextType["dangerousSquare"]>(null);
 
     return (
-        <MatchContext.Provider value={{ board, setBoard, gameId, setGameId, myUserId, setMyUserId, myColor, setMyColor, currentTurnColor, setCurrentTurnColor, whiteMs, blackMs, setWhiteMs, setBlackMs, whiteDE, blackDE, setWhiteDE, setBlackDE, clocksSyncedAt, setClocksSyncedAt, finished, setFinished, winnerId, setWinnerId, finishReason, setFinishReason, hydrated, setHydrated }}>
+        <MatchContext.Provider value={{ board, setBoard, gameId, setGameId, myUserId, setMyUserId, myColor, setMyColor, currentTurnColor, setCurrentTurnColor, whiteMs, blackMs, setWhiteMs, setBlackMs, whiteDE, blackDE, setWhiteDE, setBlackDE, clocksSyncedAt, setClocksSyncedAt, finished, setFinished, winnerId, setWinnerId, finishReason, setFinishReason, hydrated, setHydrated, phase, setPhase, nextPhase, setNextPhase, dangerousSquare, setDangerousSquare }}>
             {children}
         </MatchContext.Provider>
     );

@@ -13,7 +13,7 @@ import type { GameState } from "@/types";
  * Connects to the WS server, requests current state, and listens for updates.
  */
 export function useMatchHydration(matchId: number) {
-    const { setBoard, setGameId, setMyUserId, setMyColor, setCurrentTurnColor, setWhiteMs, setBlackMs, setClocksSyncedAt, setFinished, setWinnerId, setFinishReason, setHydrated, setWhiteDE, setBlackDE } = useMatch();
+    const { setBoard, setGameId, setMyUserId, setMyColor, setCurrentTurnColor, setWhiteMs, setBlackMs, setClocksSyncedAt, setFinished, setWinnerId, setFinishReason, setHydrated, setWhiteDE, setBlackDE, setPhase, setNextPhase, setDangerousSquare } = useMatch();
     const socketRef = useRef<Socket | null>(null);
 
     useEffect(() => {
@@ -69,6 +69,12 @@ export function useMatchHydration(matchId: number) {
                         setBlackMs(payload.clocks.blackMs);
                         setClocksSyncedAt(Date.now());
                     }
+                    // Phase info
+                    if (payload?.phase) {
+                        setPhase(payload.phase);
+                    }
+                    if (payload?.nextPhase) setNextPhase(payload.nextPhase); else setNextPhase(null);
+                    if (payload?.dangerousSquare) setDangerousSquare(payload.dangerousSquare); else setDangerousSquare(null);
                     // Hydrated when we receive a valid update for this match
                     setHydrated(true);
                 };
@@ -104,6 +110,9 @@ export function useMatchHydration(matchId: number) {
                         setBlackMs(res.clocks.blackMs);
                         setClocksSyncedAt(Date.now());
                     }
+                    if (res?.phase) setPhase(res.phase);
+                    if (res?.nextPhase) setNextPhase(res.nextPhase); else setNextPhase(null);
+                    if (res?.dangerousSquare) setDangerousSquare(res.dangerousSquare); else setDangerousSquare(null);
                     if ((m as any)?.status === "FINISHED") {
                         setFinished(true);
                         setWinnerId((m as any)?.winnerId ?? null);

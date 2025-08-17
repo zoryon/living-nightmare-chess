@@ -11,10 +11,21 @@ function format(ms: number) {
     return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
+function PhaseDesc({ phase }: { phase: "CALM" | "SHADOWS" | "UNSTABLE" | "CHAOS" }) {
+    switch (phase) {
+        case "CALM": return <span>Standard rules only. Abilities disabled.</span>;
+        case "SHADOWS": return <span>Abilities enabled. Each non-king/non-pawn may take one diagonal step once per SHADOWS turn.</span>;
+        case "UNSTABLE": return <span>Each turn, one random square is dangerous. Ending there immobilizes the piece next own turn.</span>;
+        case "CHAOS": return <span>Dream Energy tripled and abilities refreshed. Field of Fear radius increases.</span>;
+    }
+}
+
 export default function Clocks() {
-    const { myColor, currentTurnColor, whiteMs, blackMs, clocksSyncedAt, whiteDE, blackDE } = useMatch();
+    const { myColor, currentTurnColor, whiteMs, blackMs, clocksSyncedAt, whiteDE, blackDE, phase, nextPhase, finished } = useMatch();
     const [now, setNow] = useState<number>(() => Date.now());
     const raf = useRef<number | null>(null);
+    const [meditatePending, setMeditatePending] = useState(false);
+    const [meditateError, setMeditateError] = useState<string | null>(null);
 
     // Drive a lightweight timer only when a clock is running
     useEffect(() => {
@@ -86,6 +97,61 @@ export default function Clocks() {
                 <div className="text-xl font-mono">{blackDisplay == null ? "--:--" : format(blackDisplay)}</div>
                 {deBar(blackDE)}
             </div>
+            <div className="col-span-2 mt-2 rounded-md border border-gray-700 px-3 py-2 text-xs text-gray-200">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <div className="text-gray-400">Nightmare Phase</div>
+                        <div className="font-medium">{phase ?? "--"}</div>
+                        {phase && <div className="text-gray-300 mt-1"><PhaseDesc phase={phase} /></div>}
+                    </div>
+                    <div className="text-right">
+                        <div className="text-gray-400">Next</div>
+                        <div className="font-medium">{nextPhase?.name ?? "--"}</div>
+                        {nextPhase && <div className="text-gray-300 mt-1">in {Math.max(0, nextPhase.inTurns)} turn{(nextPhase.inTurns ?? 0) === 1 ? "" : "s"}</div>}
+                    </div>
+                </div>
+            </div>
+            {/* Actions: Meditate */}
+            <div className="col-span-2 flex items-center justify-between gap-3">
+                <div className="text-xs text-neutral-400">Actions</div>
+                <div className="flex items-center gap-2">
+                    <button
+                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-emerald-700/20 text-emerald-100 ring-1 ring-emerald-600/50 hover:bg-emerald-700/30 disabled:opacity-40"
+                        disabled={finished || !myColor || currentTurnColor !== myColor || meditatePending}
+                        onClick={async () => {
+                            setMeditateError(null);
+                            setMeditatePending(true);
+                            try {
+                                const s = await getSocket();
+                                await new Promise<void>((resolve) => {
+                                    s.emit("turn:meditate", {}, (ack: any) => {
+                                        if (!ack?.ok) setMeditateError(ack?.error || "meditate_failed");
+                                        resolve();
+                                    });
+                                });
+                            } catch (e: any) {
+                                setMeditateError(e?.message || "connection_error");
+                            } finally {
+                                setMeditatePending(false);
+                            }
+                        }}
+                        title="Gain +8 DE and end your turn (not allowed in check)"
+                        aria-label="Meditate"
+                    >
+                        {meditatePending ? (
+                            <>
+                                <span className="inline-block h-3 w-3 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+                                Meditating…
+                            </>
+                        ) : (
+                            <>Meditate</>
+                        )}
+                    </button>
+                </div>
+            </div>
+            {meditateError && (
+                <div className="col-span-2 text-xs text-red-400">{meditateError}</div>
+            )}
         </div>
     );
 }

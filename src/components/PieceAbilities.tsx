@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useMatch } from "@/contexts/MatchContext";
 import * as PC from "@/constants";
 import { CatalogEntry, PieceLike } from "@/types";
 
@@ -74,6 +75,7 @@ export default function PieceAbilities({
     onUseActive?: (abilityName: string) => void;
     canUse?: boolean;
 }) {
+    const { phase } = useMatch();
     const catalog = useMemo(getPiecesCatalog, []);
     const key = useMemo(() => resolveCatalogKey(piece), [piece]);
     const entry = key ? catalog[key] : undefined;
@@ -155,11 +157,14 @@ export default function PieceAbilities({
                                     <button
                                         className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-fuchsia-700/30 text-fuchsia-100 ring-1 ring-fuchsia-700/50 hover:bg-fuchsia-700/40 disabled:opacity-40"
                                         onClick={() => onUseActive(entry.activeAbility!.name)}
-                                        disabled={!canUse || (typeof entry.activeAbility.maxUses === "number" && (Number((piece as any)?.usedAbility) || 0) >= (entry.activeAbility.maxUses ?? 0))}
+                                        disabled={phase === "CALM" || !canUse || (typeof entry.activeAbility.maxUses === "number" && (Number((piece as any)?.usedAbility) || 0) >= (entry.activeAbility.maxUses ?? 0))}
                                     >
                                         Use
                                     </button>
                                 </div>
+                            )}
+                            {phase === "CALM" && (
+                                <p className="mt-1 text-[11px] text-neutral-400/90">Abilities are disabled during Calm.</p>
                             )}
                         </article>
                     )}
