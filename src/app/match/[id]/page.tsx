@@ -15,6 +15,7 @@ export default function MatchPage() {
   const { board, myUserId, myColor, finished, winnerId, finishReason, hydrated, setFinished, setWinnerId, setFinishReason, setHydrated, gameId } = useMatch() as any;
   const [promotionLarvaId, setPromotionLarvaId] = useState<number | null>(null);
   const [resigning, setResigning] = useState(false);
+  const [claiming, setClaiming] = useState(false);
 
   useMatchHydration(Number(id));
 
@@ -96,34 +97,67 @@ export default function MatchPage() {
   return (
     <main className="mx-auto max-w-5xl px-3 py-4 md:py-6">
       <div className="flex items-center justify-between mb-2">
-        <button
-          className="text-sm px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
-          disabled={finished || resigning}
-          onClick={async () => {
-            if (resigning) return;
-            setResigning(true);
-            try {
-              const s = await getSocket();
-              if (!s.connected) {
-                await new Promise<void>((res, rej) => {
-                  s.once("connect", () => res());
-                  s.once("connect_error", rej);
+        <div className="flex gap-2">
+          <button
+            className="text-sm px-3 py-1 rounded bg-yellow-600 text-white hover:bg-yellow-700 disabled:opacity-50"
+            disabled={finished || claiming}
+            onClick={async () => {
+              if (claiming) return;
+              setClaiming(true);
+              try {
+                const s = await getSocket();
+                if (!s.connected) {
+                  await new Promise<void>((res, rej) => {
+                    s.once("connect", () => res());
+                    s.once("connect_error", rej);
+                  });
+                }
+                // Emit with ack and a timeout safety
+                const ok = await new Promise<boolean>((resolve) => {
+                  let done = false;
+                  const timer = setTimeout(() => { if (!done) resolve(false); }, 2000);
+                  s.emit("match:claim-draw", {}, (ack: any) => { done = true; clearTimeout(timer); resolve(!!ack?.ok); });
                 });
+                if (!ok) {
+                  // Optional: toast could be used; for now, no-op when not eligible
+                }
+              } catch { }
+              finally {
+                setClaiming(false);
               }
-              // Emit with ack and a timeout safety
-              await new Promise<void>((resolve) => {
-                let done = false;
-                const timer = setTimeout(() => { if (!done) resolve(); }, 2000);
-                s.emit("match:resign", {}, (_ack: any) => { done = true; clearTimeout(timer); resolve(); });
-              });
-            } catch { }
-            finally {
-              setResigning(false);
-            }
-          }}
-        >
-          {resigning ? "Resigning…" : "Resign"}
-        </button>
+            }}
+          >
+            {claiming ? "Claiming…" : "Claim 50-move Draw"}
+          </button>
+          <button
+            className="text-sm px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+            disabled={finished || resigning}
+            onClick={async () => {
+              if (resigning) return;
+              setResigning(true);
+              try {
+                const s = await getSocket();
+                if (!s.connected) {
+                  await new Promise<void>((res, rej) => {
+                    s.once("connect", () => res());
+                    s.once("connect_error", rej);
+                  });
+                }
+                // Emit with ack and a timeout safety
+                await new Promise<void>((resolve) => {
+                  let done = false;
+                  const timer = setTimeout(() => { if (!done) resolve(); }, 2000);
+                  s.emit("match:resign", {}, (_ack: any) => { done = true; clearTimeout(timer); resolve(); });
+                });
+              } catch { }
+              finally {
+                setResigning(false);
+              }
+            }}
+          >
+            {resigning ? "Resigning…" : "Resign"}
+          </button>
+        </div>
       </div>
 
       <div className="relative">
