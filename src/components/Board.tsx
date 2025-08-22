@@ -39,10 +39,11 @@ const Board = ({ board }: { board: BoardType | null }) => {
         if (myColor === "black") return board;
         return [...board].slice().reverse() as BoardType;
     }, [board, myColor]);
+
     const attemptMove = useCallback(async (from: { x: number; y: number; pieceId: number }, to: { x: number; y: number }) => {
-        if (!myColor) return; // color unknown, avoid sending
-        if (finished) return; // no moves after finish
-        if (pendingMove) return; // prevent concurrent optimistic moves
+        if (!myColor) return; // Color unknown, avoid sending
+        if (finished) return; // No moves after finish
+        if (pendingMove) return; // Prevent concurrent optimistic moves
         if (currentTurnColor !== myColor) {
             setLastError("not_your_turn");
             return;
@@ -57,12 +58,14 @@ const Board = ({ board }: { board: BoardType | null }) => {
         // Apply optimistic board update
         const nextBoard: BoardType = board.map(row => (row ? row.slice() : row)) as BoardType;
         const moving = nextBoard[from.y]?.[from.x] || null;
-        if (!moving) return; // should not happen
+        if (!moving) return; // Should not happen
+
         // Place piece at destination and clear source
         if (!nextBoard[to.y]) return;
         nextBoard[to.y][to.x] = moving;
         nextBoard[from.y][from.x] = null;
         setBoardCtx(nextBoard);
+
         // Hide selection and hints immediately during optimistic phase
         setSelected(null);
         setHints([]);
@@ -127,7 +130,7 @@ const Board = ({ board }: { board: BoardType | null }) => {
     }, [myColor, pendingMove, currentTurnColor, board, setBoardCtx, whiteMs, blackMs, clocksSyncedAt, setWhiteMs, setBlackMs, setClocksSyncedAt, setCurrentTurnColor]);
 
     // Generate simple pseudo-legal hints (server still validates). Covers basic chess-like moves and occupancy rules.
-    // Enhanced: honors temporary movement override via status.mimic (from Doppelganger: Mimicry).
+    // Honors temporary movement override via status.mimic (from Doppelganger: Mimicry).
     const computeHints = useCallback((from: { x: number; y: number; pieceId: number }) => {
         if (!board) return [] as Array<{ x: number; y: number }>;
         const p = board[from.y]?.[from.x];
@@ -135,10 +138,12 @@ const Board = ({ board }: { board: BoardType | null }) => {
         const type = p.type as string;
         const color = p.color as "white" | "black";
     const status: any = (p as any).status || {};
+
     // Prefer local override from recent Mimicry on this client; fall back to status from server sync
     const mimicOverride = mimicLocal[from.pieceId] ? String(mimicLocal[from.pieceId]).toLowerCase() : null;
     const mimicMove = mimicOverride || (typeof status.mimic === "string" ? (status.mimic as string).toLowerCase() : null);
     const unstablePendingTurn: number | undefined = status.unstablePendingTurn;
+
     // Only show Unstable forced-step options to the owner of the piece
     const unstableActive = (type === "DOPPELGANGER") && (color === myColor) && (unstablePendingTurn != null || unstableLocal.includes(from.pieceId));
         const inside = (x: number, y: number) => x >= 0 && x < 8 && y >= 0 && y < 8;
@@ -237,17 +242,17 @@ const Board = ({ board }: { board: BoardType | null }) => {
         }
 
         switch (type) {
-            case "SLEEPLESS_EYE": { // king
+            case "SLEEPLESS_EYE": { // King
                 for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
                     if (dx === 0 && dy === 0) continue;
                     const x = from.x + dx, y = from.y + dy; if (!inside(x, y)) continue; pushIf(x, y);
                 }
                 break;
             }
-            case "PHANTOM_MATRIARCH": // queen
+            case "PHANTOM_MATRIARCH": // Queen
                 rays([[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]);
                 break;
-            case "SHADOW_HUNTER": // rook
+            case "SHADOW_HUNTER": // Rook
                 rays([[1, 0], [-1, 0], [0, 1], [0, -1]]);
                 break;
             case "DOPPELGANGER":
@@ -263,8 +268,6 @@ const Board = ({ board }: { board: BoardType | null }) => {
         }
         return res;
     }, [board, currentTurnColor, unstableLocal, mimicLocal, myColor]);
-
-    // Note: Do not early-return here; render a spinner conditionally to keep hooks order stable.
 
     // Centralized ability opener (used by long-press, right-click, and the small button)
     const openAbilities = useCallback((p: BoardCell | null) => {
@@ -312,10 +315,12 @@ const Board = ({ board }: { board: BoardType | null }) => {
                 const s = await getSocket();
                 const onAbility = (payload: any) => {
                     if (!mounted) return;
+
                     // Clear any stale selection/hints on any ability broadcast
                     setSelected(null);
                     setHints([]);
                     setAbilityTargets([]);
+
                     // Mimicry: only the acting player should immediately see the new path; use server-provided movement as local override
                     if (payload?.ability === "Mimicry" && typeof payload.pieceId === "number") {
                         const pid = payload.pieceId as number;
@@ -330,6 +335,7 @@ const Board = ({ board }: { board: BoardType | null }) => {
                                 }
                             }
                         }
+
                         // Only apply on the client that owns the piece
                         if (pieceColor && myColor && pieceColor === myColor) {
                             if (mv) setMimicLocal(prev => ({ ...prev, [pid]: mv }));
@@ -383,7 +389,7 @@ const Board = ({ board }: { board: BoardType | null }) => {
                 };
                 s.on("ability:applied", onAbility);
                 s.on("move:applied", onMoveApplied);
-            } catch { /* ignore */ }
+            } catch { /* Ignore */ }
         })();
         return () => {
             (async () => {
@@ -403,7 +409,7 @@ const Board = ({ board }: { board: BoardType | null }) => {
         const cur = currentTurnColor ?? null;
         if (prevTurnRef.current != null && cur !== prevTurnRef.current) {
             setUnstableLocal([]);
-            setMimicLocal({}); // clear local Mimicry overrides on turn swap
+            setMimicLocal({}); // Clear local Mimicry overrides on turn swap
         }
         prevTurnRef.current = cur;
     }, [currentTurnColor]);
@@ -619,7 +625,7 @@ const Board = ({ board }: { board: BoardType | null }) => {
                                                     {/* Ability button for the selected piece (tap to open) */}
                                                     {isSelected && cell && phase !== "CALM" && (
                                                         <button
-                                                            className="absolute top-1 right-1 size-1.5 md:size-6 rounded-md bg-black/60 text-fuchsia-200 ring-1 ring-neutral-800 hover:bg-black/80"
+                                                            className="hidden md:block absolute top-1 right-1 size-1.5 md:size-6 rounded-md bg-black/60 text-fuchsia-200 ring-1 ring-neutral-800 hover:bg-black/80"
                                                             onClick={(e) => { e.stopPropagation(); openAbilities(cell); }}
                                                             aria-label="Show abilities"
                                                             title="Show abilities"
@@ -706,9 +712,9 @@ const Board = ({ board }: { board: BoardType | null }) => {
                 })()}
                 onUseActive={(abilityName) => {
                     if (!abilityPiece || !myColor || finished) return;
-                    if (currentTurnColor !== myColor) return; // not your turn
-                    if (abilityPiece.color !== myColor) return; // not your piece
-                    if (phase === "CALM") return; // abilities disabled in Calm
+                    if (currentTurnColor !== myColor) return; // Not your turn
+                    if (abilityPiece.color !== myColor) return; // Not your piece
+                    if (phase === "CALM") return; // Abilities disabled in Calm phase
                     if (!abilityPiece) return;
                     const pieceType = abilityPiece.type as string;
                     const key = `${pieceType}:${abilityName}`;
@@ -778,7 +784,7 @@ const Cell = ({
                 movedRef.current = false;
             }}
             onTouchMove={() => {
-                movedRef.current = true; // user is dragging or scrolling, don't trigger double-tap
+                movedRef.current = true; // Sser is dragging or scrolling, don't trigger double-tap
             }}
             onTouchEnd={(e) => {
                 // If the touch moved, treat as drag/scroll and ignore
