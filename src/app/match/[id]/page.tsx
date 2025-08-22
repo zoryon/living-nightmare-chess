@@ -12,7 +12,7 @@ import PromotionModal from "@/components/PromotionModal";
 export default function MatchPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { board, myUserId, myColor, finished, winnerId, finishReason, hydrated, setFinished, setWinnerId, setFinishReason, setHydrated, gameId } = useMatch() as any;
+  const { board, myUserId, myColor, finished, winnerId, finishReason, hydrated, setFinished, setWinnerId, setFinishReason, setHydrated, gameId, setPhase, setNextPhase, setDangerousSquare } = useMatch() as any;
   const [promotionLarvaId, setPromotionLarvaId] = useState<number | null>(null);
   const [resigning, setResigning] = useState(false);
   const [claiming, setClaiming] = useState(false);
@@ -25,6 +25,10 @@ export default function MatchPage() {
     setFinished(false);
     setWinnerId(null);
     setFinishReason(null);
+    // Reset phase-related UI so we don't show a stale phase from a previous match
+    setPhase(null);
+    setNextPhase(null);
+    setDangerousSquare(null);
   }, [id, setHydrated, setFinished, setWinnerId, setFinishReason]);
 
   // Listen for server prompting a promotion (after a Larva reaches last rank)
