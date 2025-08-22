@@ -2,9 +2,37 @@
 
 import { useMatchmaking } from "@/hooks/useMatchmaking";
 import { Button } from "@/components/ui/button";
+import { useEffect, useState } from "react";
+import { secureFetch } from "@/lib/auth/refresh-client";
 
 export default function FindMatchPage() {
   const { state, findMatch } = useMatchmaking();
+
+  const [queuePlayersNum, setQueuePlayersNum] = useState<number>(0);
+
+  async function fetchQueue() { 
+    const res = await secureFetch("/api/queue/current", { method: "GET" });
+    if (!res.ok) return;
+
+    const data = await res.json();
+    setQueuePlayersNum(data.playersNum);
+  }
+
+  useEffect(() => {
+    fetchQueue();
+
+    const interval = setInterval(() => {
+      fetchQueue();
+    }, 120_000); // 2 min
+
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (state.status === "searching") {
+      fetchQueue();
+    }
+  }, [state.status]);
 
   return (
     <main className="min-h-dvh flex items-center justify-center p-8">
@@ -27,6 +55,10 @@ export default function FindMatchPage() {
           </Button>
         </div>
 
+        <p className="text-xs text-muted-foreground">
+          <span className="text-green-500">{queuePlayersNum}</span>
+          {" "}players currently in queue
+        </p>
         <Status state={state.status} />
         {state.status === "error" && state.message && (
           <p className="text-sm text-red-500" role="alert">{state.message}</p>
