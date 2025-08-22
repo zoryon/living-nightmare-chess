@@ -13,6 +13,7 @@ export function useMatchmaking() {
   const [state, setState] = useState<MatchState>({ status: "idle" });
   const socketRef = useRef<Socket | null>(null);
   const router = useRouter();
+  const searchingRef = useRef(false);
 
   const { setBoard, setGameId, setMyUserId, setMyColor, setCurrentTurnColor, setWhiteMs, setBlackMs, setClocksSyncedAt, setFinished, setWinnerId, setFinishReason, setHydrated } = useMatch();
   // Prevent double navigations if multiple events arrive (start/update/resume)
@@ -31,11 +32,13 @@ export function useMatchmaking() {
 
       s.on("match:searching", () => {
         setState({ status: "searching" });
+        searchingRef.current = true;
       });
 
       s.on("match:start", (game: GameState) => {
         if (!game) return console.log("Error: no game data");
         setState({ status: "starting", gameId: game.id });
+        searchingRef.current = false;
         // Reset any previous finished state just in case
         setHydrated(false);
         setFinished(false);
@@ -65,6 +68,7 @@ export function useMatchmaking() {
       s.on("match:resume", (game: GameState) => {
         if (!game) return;
         setState({ status: "resumed", gameId: game.id });
+        searchingRef.current = false;
         // Reset previous finish state on resume of an ongoing match
         setHydrated(false);
         setFinished(false);
@@ -115,19 +119,33 @@ export function useMatchmaking() {
       // Handle opponent disconnect before game starts or other queue errors
       s.on("error:opponent_disconnected", () => {
         setState({ status: "searching" });
+        searchingRef.current = true;
       });
       s.on("error:match_queue_failed", () => {
         setState({ status: "error", message: "Queue failed. Please try again." });
+        searchingRef.current = false;
       });
 
       s.on("error:match_not_found", () => {
         setState({ status: "error", message: "No match found" });
+        searchingRef.current = false;
+      });
+
+      // Server confirms cancellation
+      s.on("match:cancelled", () => {
+        setState({ status: "idle" });
+        searchingRef.current = false;
       });
     })();
 
     return () => {
       mounted = false;
       const s = socketRef.current;
+      // If leaving this page while still searching, proactively cancel.
+      if (s && searchingRef.current) {
+        try { s.emit("match:cancel"); } catch { }
+        searchingRef.current = false;
+      }
       if (s) {
         s.off("connect_error");
         s.off("match:searching");
@@ -137,6 +155,7 @@ export function useMatchmaking() {
         s.off("error:opponent_disconnected");
         s.off("error:match_queue_failed");
         s.off("match:update");
+        s.off("match:cancelled");
       }
     };
   }, [router]);
@@ -156,10 +175,25 @@ export function useMatchmaking() {
       // Explicitly ask server to queue
       s.emit("match:queue");
       setState({ status: "searching" });
+      searchingRef.current = true;
     } catch (e: any) {
       setState({ status: "error", message: e?.message || "Connection failed" });
+      searchingRef.current = false;
     }
   }, []);
 
-  return { state, findMatch };
+  const cancel = useCallback(async () => {
+    try {
+      const s = await getSocket();
+      // Ask server to cancel our waiting entry
+      s.emit("match:cancel");
+      // Optimistically update UI
+      setState({ status: "idle" });
+      searchingRef.current = false;
+    } catch (e: any) {
+      setState({ status: "error", message: e?.message || "Cancel failed" });
+    }
+  }, []);
+
+  return { state, findMatch, cancel };
 }
