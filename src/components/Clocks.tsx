@@ -14,7 +14,7 @@ function format(ms: number) {
 function PhaseDesc({ phase }: { phase: "CALM" | "SHADOWS" | "UNSTABLE" | "CHAOS" }) {
     switch (phase) {
         case "CALM": return <span>Standard rules only. Abilities disabled.</span>;
-        case "SHADOWS": return <span>Abilities enabled. Each non-king/non-pawn may take one diagonal step once per SHADOWS turn.</span>;
+        case "SHADOWS": return <span>Abilities enabled.</span>;
         case "UNSTABLE": return <span>Each turn, one random square is dangerous. Ending there immobilizes the piece next own turn.</span>;
         case "CHAOS": return <span>Dream Energy tripled and abilities refreshed. Field of Fear radius increases.</span>;
     }
