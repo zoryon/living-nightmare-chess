@@ -19,8 +19,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Living Nightmares Chess",
-  description: "Living Nightmares Chess Official Website",
+  title: "Nox Chess",
+  description: "Nox Chess Official Website",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
