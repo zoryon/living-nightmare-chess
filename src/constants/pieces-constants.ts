@@ -94,7 +94,7 @@ export const PIECES: Record<string, PieceType> = {
             trigger: "active",
             cost: 3,
             maxUses: 2,
-            description: "Make a long jump in an L-shape of 3x2 squares. May capture normally (including the Sleepless Eye), but cannot capture the Phantom Matriarch.",
+            description: "Make a long jump in an L-shape of 3x2 squares. Cannot capture the Sleepless Eye nor the Phantom Matriarch.",
             // Implemented in engine/abilities.ts
             effect: () => {}
         },
