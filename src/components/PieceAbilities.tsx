@@ -2,28 +2,12 @@
 
 import { useMemo } from "react";
 import { useMatch } from "@/contexts/MatchContext";
-import * as PC from "@/constants";
+import { PIECES as CATALOG_PIECES } from "@/constants";
 import { CatalogEntry, PieceLike } from "@/types";
 
+// Catalog of all piece definitions used by the abilities panel
 function getPiecesCatalog(): Record<string, CatalogEntry> {
-    const candidates = [
-        (PC as any).PIECES,
-        (PC as any).PIECES_MAP,
-        (PC as any).default,
-        (PC as any),
-    ];
-    for (const c of candidates) {
-        if (
-            c &&
-            typeof c === "object" &&
-            Object.values(c).some(
-                (v: any) => v && typeof v === "object" && ("activeAbility" in v || "passiveAbility" in v)
-            )
-        ) {
-            return c as Record<string, CatalogEntry>;
-        }
-    }
-    return {};
+    return CATALOG_PIECES as unknown as Record<string, CatalogEntry>;
 }
 
 function normalizeKey(s: string) {

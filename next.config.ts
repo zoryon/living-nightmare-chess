@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
       "src/generated/prisma/**",
     ],
   },
+  output: "standalone",
 };
 
 export default nextConfig;
