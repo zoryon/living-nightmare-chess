@@ -75,7 +75,8 @@ RUN set -eux; \
 COPY . .
 EXPOSE 3000
 CMD [ "sh", "-c", "\
-  if [ -f pnpm-lock.yaml ]; then corepack enable pnpm && exec pnpm run dev; \
-  elif [ -f yarn.lock ]; then exec yarn dev; \
-  else exec npm run dev; \
-  "]
+if [ -f pnpm-lock.yaml ]; then corepack enable pnpm && exec pnpm run dev; \
+elif [ -f yarn.lock ]; then exec yarn dev; \
+else exec npm run dev; \
+fi \
+"]
