@@ -1,0 +1,21 @@
+# Dependencies
+node_modules
+# Next build output (builder will produce its own)
+.next
+out
+dist
+
+# VCS and CI
+.git
+.gitignore
+.github
+
+# Local env and logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-store
+.cache
+.env*
+.DS_Store
