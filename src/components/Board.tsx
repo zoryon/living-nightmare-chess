@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import { PIECE_IMAGES } from "@/constants";
 import { BoardCell, BoardType, PieceImagesType } from "@/types";
 import { useMatch } from "@/contexts/MatchContext";
 import { getSocket } from "@/lib/socket";
 import PieceAbilities from "@/components/dialogs/PieceAbilities";
+import { getFriendlyError, parseMatchError } from "@/lib/match/error-messages";
 
 const Board = ({ board }: { board: BoardType | null }) => {
     const [isVisible, setIsVisible] = useState(false);
@@ -45,7 +47,10 @@ const Board = ({ board }: { board: BoardType | null }) => {
         if (finished) return; // No moves after finish
         if (pendingMove) return; // Prevent concurrent optimistic moves
         if (currentTurnColor !== myColor) {
-            setLastError("not_your_turn");
+            const code = "not_your_turn" as const;
+            setLastError(code);
+            const { title, description } = getFriendlyError(code);
+            toast.warning(title, { description });
             return;
         }
         if (!board) return;
@@ -93,7 +98,10 @@ const Board = ({ board }: { board: BoardType | null }) => {
             await new Promise<void>((resolve) => {
                 s.emit("move:attempt", { pieceId: from.pieceId, from: { x: from.x, y: from.y }, to }, (ack: any) => {
                     if (!ack?.ok) {
-                        setLastError(ack?.error || "illegal_move");
+                        const code = parseMatchError(ack?.error || "illegal_move");
+                        setLastError(code);
+                        const { title, description, level } = getFriendlyError(code);
+                        if (level === "warning") toast.warning(title, { description }); else toast.error(title, { description });
                         // Revert optimistic state
                         const prevB = boardSnapshotRef.current;
                         const prevC = clocksSnapshotRef.current;
@@ -111,7 +119,10 @@ const Board = ({ board }: { board: BoardType | null }) => {
                 });
             });
         } catch (e: any) {
-            setLastError(e?.message || "connection_error");
+            const code = parseMatchError(e?.message || "connection_error");
+            setLastError(code);
+            const { title, description, level } = getFriendlyError(code);
+            if (level === "warning") toast.warning(title, { description }); else toast.error(title, { description });
             // Revert optimistic state on transport error
             const prevB = boardSnapshotRef.current;
             const prevC = clocksSnapshotRef.current;
@@ -137,15 +148,15 @@ const Board = ({ board }: { board: BoardType | null }) => {
         if (!p) return [] as any;
         const type = p.type as string;
         const color = p.color as "white" | "black";
-    const status: any = (p as any).status || {};
+        const status: any = (p as any).status || {};
 
-    // Prefer local override from recent Mimicry on this client; fall back to status from server sync
-    const mimicOverride = mimicLocal[from.pieceId] ? String(mimicLocal[from.pieceId]).toLowerCase() : null;
-    const mimicMove = mimicOverride || (typeof status.mimic === "string" ? (status.mimic as string).toLowerCase() : null);
-    const unstablePendingTurn: number | undefined = status.unstablePendingTurn;
+        // Prefer local override from recent Mimicry on this client; fall back to status from server sync
+        const mimicOverride = mimicLocal[from.pieceId] ? String(mimicLocal[from.pieceId]).toLowerCase() : null;
+        const mimicMove = mimicOverride || (typeof status.mimic === "string" ? (status.mimic as string).toLowerCase() : null);
+        const unstablePendingTurn: number | undefined = status.unstablePendingTurn;
 
-    // Only show Unstable forced-step options to the owner of the piece
-    const unstableActive = (type === "DOPPELGANGER") && (color === myColor) && (unstablePendingTurn != null || unstableLocal.includes(from.pieceId));
+        // Only show Unstable forced-step options to the owner of the piece
+        const unstableActive = (type === "DOPPELGANGER") && (color === myColor) && (unstablePendingTurn != null || unstableLocal.includes(from.pieceId));
         const inside = (x: number, y: number) => x >= 0 && x < 8 && y >= 0 && y < 8;
         const at = (x: number, y: number) => (inside(x, y) ? board[y]?.[x] ?? null : null);
         const res: Array<{ x: number; y: number }> = [];
@@ -284,13 +295,21 @@ const Board = ({ board }: { board: BoardType | null }) => {
             const s = await getSocket();
             await new Promise<void>((resolve) => {
                 s.emit("ability:use", { pieceId, name: abilityName, target }, (ack: any) => {
-                    if (!ack?.ok) setLastError(ack?.error || "ability_failed");
+                    if (!ack?.ok) {
+                        const code = parseMatchError(ack?.error || "ability_failed");
+                        setLastError(code);
+                        const { title, description, level } = getFriendlyError(code);
+                        if (level === "warning") toast.warning(title, { description }); else toast.error(title, { description });
+                    }
                     // Do not auto reselect/show hints on ack; ability:applied will manage visuals
                     resolve();
                 });
             });
         } catch (e: any) {
-            setLastError(e?.message || "connection_error");
+            const code = parseMatchError(e?.message || "connection_error");
+            setLastError(code);
+            const { title, description, level } = getFriendlyError(code);
+            if (level === "warning") toast.warning(title, { description }); else toast.error(title, { description });
         } finally {
             setAbilityBusy(false);
             setAbilityArm(null);
@@ -451,7 +470,7 @@ const Board = ({ board }: { board: BoardType | null }) => {
         const at = (x: number, y: number) => (inside(x, y) ? board[y]?.[x] ?? null : null);
         const targets: Array<{ x: number; y: number }> = [];
 
-    if (abilityArm.pieceType === "PHANTOM_MATRIARCH" && abilityArm.abilityName === "Ethereal Passage") {
+        if (abilityArm.pieceType === "PHANTOM_MATRIARCH" && abilityArm.abilityName === "Ethereal Passage") {
             const dirs: Array<[number, number]> = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
             for (const [dx, dy] of dirs) {
                 for (let s = 1; s < 8; s++) {
@@ -696,9 +715,7 @@ const Board = ({ board }: { board: BoardType | null }) => {
                         </div>
                     </div>
                 )}
-                {lastError && (
-                    <div className="mt-2 text-center text-xs text-red-400">{lastError}</div>
-                )}
+                {/* Retain state for possible future inline hints, but rely on toast for user feedback */}
             </div>
 
             <PieceAbilities

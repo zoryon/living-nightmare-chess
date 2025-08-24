@@ -4,6 +4,8 @@ import { usePathname } from "next/navigation";
 
 import AutoRefreshProvider from "@/contexts/AutoRefreshContext";
 import { MatchProvider } from "@/contexts/MatchContext";
+import ToastProvider from "@/components/global/ToastProvider";
+import SonnerToaster from "@/components/global/SonnerToaster";
 
 const Providers = ({ children }: { children: React.ReactNode }) => {
   const pathname = usePathname();
@@ -11,7 +13,10 @@ const Providers = ({ children }: { children: React.ReactNode }) => {
   return (
     <AutoRefreshProvider>
       <MatchProvider>
-        {children}
+        <ToastProvider>
+          <SonnerToaster />
+          {children}
+        </ToastProvider>
       </MatchProvider>
     </AutoRefreshProvider>
   );

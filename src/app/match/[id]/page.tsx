@@ -103,7 +103,7 @@ export default function MatchPage() {
       <div className="flex items-center justify-between mb-2">
         <div className="flex gap-2">
           <button
-            className="text-sm px-3 py-1 rounded bg-yellow-600 text-white hover:bg-yellow-700 disabled:opacity-50"
+            className="text-sm px-3 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
             disabled={finished || claiming}
             onClick={async () => {
               if (claiming) return;
