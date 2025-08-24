@@ -180,12 +180,16 @@ export default function MatchPage() {
               <div className="flex gap-3 justify-center pt-2">
                 <button
                   className="px-3 py-1 rounded bg-indigo-600 text-white hover:bg-indigo-700"
-                  onClick={() => router.push("/find-match")}
-                >Play again</button>
+                  onClick={() => router.push("/")}
+                >
+                  Play again
+                  </button>
                 <button
                   className="px-3 py-1 rounded bg-gray-700 text-white hover:bg-gray-600"
                   onClick={() => router.push("/")}
-                >Home</button>
+                >
+                  Home
+                </button>
               </div>
             </div>
           </div>

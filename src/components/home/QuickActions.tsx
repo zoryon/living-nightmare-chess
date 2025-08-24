@@ -5,22 +5,16 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
 type Props = {
-    continueId: string | null;
     onOpenHowTo: () => void;
     onOpenTips?: () => void;
 };
 
-const QuickActions = ({ continueId, onOpenHowTo, onOpenTips }: Props) => {
+const QuickActions = ({ onOpenHowTo, onOpenTips }: Props) => {
     const router = useRouter();
     return (
         <div className="rounded-3xl border bg-card/80 p-6 shadow-sm ring-1 ring-border/50">
             <h3 className="text-base font-semibold mb-3">Quick actions</h3>
             <div className="flex flex-col gap-2">
-                {continueId && (
-                    <Button onClick={() => router.push(`/match/${encodeURIComponent(continueId)}`)} variant="secondary">
-                        Continue match
-                    </Button>
-                )}
                 <Button variant="secondary" onClick={onOpenHowTo}>
                     Rules
                 </Button>

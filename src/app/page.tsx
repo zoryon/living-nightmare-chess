@@ -16,25 +16,12 @@ const HomePage = () => {
   const router = useRouter();
 
   const [matchId, setMatchId] = useState<string>("");
-  const [continueId, setContinueId] = useState<string | null>(null);
   const [queuePlayersNum, setQueuePlayersNum] = useState<number>(0);
   const [howToOpen, setHowToOpen] = useState<boolean>(false);
   const [tipsOpen, setTipsOpen] = useState<boolean>(false);
   const prevStatusRef = useRef<string | null>(null);
 
   const { state, findMatch, cancel } = useMatchmaking();
-
-  useEffect(() => {
-    // Try common keys to continue a match if the app set one previously
-    const keys = ["lastMatchId", "activeMatchId", "currentMatchId", "nox:lastMatchId"];
-    for (const k of keys) {
-      const v = typeof window !== "undefined" ? localStorage.getItem(k) : null;
-      if (v) {
-        setContinueId(v);
-        break;
-      }
-    }
-  }, []);
 
   // Queue polling (token-aware)
   async function fetchQueue() {
@@ -93,7 +80,6 @@ const HomePage = () => {
             {/* Quick actions & shortcuts */}
             <div className="space-y-6">
               <QuickActions
-                continueId={continueId}
                 onOpenHowTo={() => setHowToOpen(true)}
                 onOpenTips={() => setTipsOpen(true)}
               />
