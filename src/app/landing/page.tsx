@@ -20,9 +20,9 @@ const LandingPage = () => {
                     <div className="grid items-center gap-10 lg:grid-cols-2">
                         <div className="space-y-6 text-center lg:text-left">
                             <h1 className="text-4xl sm:text-5xl font-bold leading-tight">
-                                Outplay opponents
+                                Outplay opponents.
                                 <span className="block text-balance bg-gradient-to-r from-purple-400 via-fuchsia-400 to-emerald-400 bg-clip-text text-transparent">
-                                    with Nox Chess
+                                    Play Nox Chess
                                 </span>
                             </h1>
                             <p className="text-base sm:text-lg text-muted-foreground max-w-prose mx-auto lg:mx-0">
