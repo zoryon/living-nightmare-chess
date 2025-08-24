@@ -10,14 +10,16 @@ const PUBLIC_ONLY_PATHS = [
     "/register/confirm",
     "/api/auth/login", 
     "/api/auth/register",
-    "/api/auth/register/confirm"
+    "/api/auth/register/confirm",
 ];
 
 // Paths accessible by everyone (optional, e.g. static)
 const OPEN_PATHS = [
     "/favicon.ico", 
     "/robots.txt", 
-    "/api/health"
+    "/landing",
+    "/pieces",
+    "/api/health",
 ];
 
 // Middleware
