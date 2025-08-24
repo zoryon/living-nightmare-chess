@@ -83,14 +83,14 @@ export default function PiecesGallery() {
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
         {filtered.map((it) => {
           const img = previewColor === "white" ? it.imgWhite : it.imgBlack;
           return (
             <button
               key={it.key}
               onClick={() => setOpenKey(it.key)}
-              className="group relative overflow-hidden rounded-xl border bg-card/60 p-3 text-left shadow-sm transition-colors hover:bg-card"
+              className="group relative overflow-hidden rounded-xl border bg-card/60 p-3 cursor-pointer text-left shadow-sm transition-colors hover:bg-card"
             >
               <div className="absolute -top-16 -right-16 h-40 w-40 rounded-full bg-fuchsia-500/10 blur-2xl transition-opacity group-hover:opacity-80" />
               <div className="flex items-center gap-3">

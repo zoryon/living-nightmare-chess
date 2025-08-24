@@ -8,6 +8,7 @@ import "./globals.css";
 // Custom
 import Providers from "@/components/Providers";
 import BackgroundAccents from "@/components/global/BackgroundAccents";
+import Navbar from "@/components/global/Navbar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,6 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased dark`}>
         <Providers>
           <BackgroundAccents />
+          <Navbar />
 
           {children}
         </Providers>

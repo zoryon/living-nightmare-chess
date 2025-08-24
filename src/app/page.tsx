@@ -1,47 +1,26 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import type { PublicUser } from "@/types";
+
 import { useMatchmaking } from "@/hooks/useMatchmaking";
 import { secureFetch } from "@/lib/auth/refresh-client";
 import HowToPlay from "@/components/HowToPlay";
 import PiecesGallery from "@/components/PiecesGallery";
-import BackgroundAccents from "@/components/global/BackgroundAccents";
-import GreetingBar from "@/components/home/GreetingBar";
 import PlayCard from "@/components/home/PlayCard";
 import QuickActions from "@/components/home/QuickActions";
 
 const HomePage = () => {
   const router = useRouter();
 
-  const [user, setUser] = useState<PublicUser | null>(null);
-  const [loadingUser, setLoadingUser] = useState(true);
-  const [matchId, setMatchId] = useState("");
+  const [matchId, setMatchId] = useState<string>("");
   const [continueId, setContinueId] = useState<string | null>(null);
   const [queuePlayersNum, setQueuePlayersNum] = useState<number>(0);
-  const [loggingOut, setLoggingOut] = useState(false);
-  const { state, findMatch, cancel } = useMatchmaking();
+  const [howToOpen, setHowToOpen] = useState<boolean>(false);
   const prevStatusRef = useRef<string | null>(null);
-  const [howToOpen, setHowToOpen] = useState(false);
 
-  useEffect(() => {
-    // Best-effort fetch for a friendly greeting and rating
-    const fetchMe = async () => {
-      try {
-        const res = await fetch("/api/me", { credentials: "include" });
-        if (res.ok) {
-          const data = await res.json();
-          if (data?.publicUser) setUser(data.publicUser as PublicUser);
-        }
-      } catch (_) {
-        // ignore
-      } finally {
-        setLoadingUser(false);
-      }
-    };
-    fetchMe();
-  }, []);
+  const { state, findMatch, cancel } = useMatchmaking();
 
   useEffect(() => {
     // Try common keys to continue a match if the app set one previously
@@ -89,26 +68,12 @@ const HomePage = () => {
     router.push(`/match/${encodeURIComponent(matchId.trim())}`);
   };
 
-  const handleLogout = async () => {
-    try {
-      setLoggingOut(true);
-      await fetch("/api/auth/logout", { method: "POST" });
-    } catch (_) {
-      // ignore
-    } finally {
-      setLoggingOut(false);
-      router.replace("/login");
-    }
-  };
-
   return (
     <div className="relative min-h-dvh flex flex-col">
       <main className="flex-1">
         <section className="max-w-6xl mx-auto px-6 py-10 sm:py-12">
-          <GreetingBar user={user} loggingOut={loggingOut} onLogout={handleLogout} />
-
           {/* Content grid: left = Play card, right = Quick actions */}
-          <div className="grid gap-6 lg:grid-cols-3 mt-14">
+          <div className="grid gap-6 lg:grid-cols-3 mt-4">
             {/* Play/Join card (prominent) */}
             <div className="lg:col-span-2">
               <PlayCard

@@ -18,12 +18,12 @@ export async function GET(request: Request) {
         const cookieStore = await cookies();
         const token = cookieStore.get("refresh_token")?.value;
         if (!token) {
-            return NextResponse.redirect(new URL("/login", url));
+            return NextResponse.redirect(new URL("/landing", url));
         }
 
         const payload: any = await verifyRefreshToken(token);
         if (!payload || !payload.userId || !payload.deviceId) {
-            return NextResponse.redirect(new URL("/login", url));
+            return NextResponse.redirect(new URL("/landing", url));
         }
 
         // Validate token in DB by unique token only (fast path), then check fields in code
@@ -38,7 +38,7 @@ export async function GET(request: Request) {
             Number(stored.deviceId) !== Number(payload.deviceId) ||
             Number(stored.userId) !== Number(payload.userId)
         ) {
-            return NextResponse.redirect(new URL("/login", url));
+            return NextResponse.redirect(new URL("/landing", url));
         }
 
         // Touch device last seen (soft fail)
@@ -51,9 +51,9 @@ export async function GET(request: Request) {
 
         return NextResponse.redirect(new URL(nextPath, url));
     } catch {
-        // On any unexpected error, send user to login
+        // On any unexpected error, send user to landing
         const url = new URL(request.url);
-        return NextResponse.redirect(new URL("/login", url));
+        return NextResponse.redirect(new URL("/landing", url));
     }
 }
 

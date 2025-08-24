@@ -1,32 +1,13 @@
 "use client";
 
 import Link from "next/link";
+
 import { Button } from "@/components/ui/button";
 import FeatureCard from "@/components/FeatureCard";
 
 const LandingPage = () => {
     return (
         <div className="relative min-h-dvh flex flex-col">
-            {/* Top Navigation */}
-            <header className="sticky top-0 z-50 w-full border-b bg-background/60 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-                <div className="max-w-6xl mx-auto flex items-center justify-between px-6 py-4">
-                    <Link href="/" className="font-semibold tracking-tight hover:opacity-90 transition-opacity">
-                        <span className="bg-gradient-to-r from-purple-400 to-emerald-400 bg-clip-text text-transparent">Nox</span> Chess
-                    </Link>
-                    <nav className="hidden gap-2 sm:flex">
-                        <Button asChild variant="ghost">
-                            <Link href="/find-match">Find match</Link>
-                        </Button>
-                        <Button asChild variant="ghost">
-                            <Link href="/login">Log in</Link>
-                        </Button>
-                        <Button asChild>
-                            <Link href="/register">Sign up</Link>
-                        </Button>
-                    </nav>
-                </div>
-            </header>
-
             {/* Background Accents */}
             <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
                 <div className="absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-purple-500/20 blur-3xl" />
@@ -96,9 +77,6 @@ const LandingPage = () => {
                     <div className="mt-8 flex flex-wrap items-center gap-3">
                         <Button asChild>
                             <Link href="/">Play now</Link>
-                        </Button>
-                        <Button asChild variant="secondary">
-                            <Link href="/#pieces">Browse pieces</Link>
                         </Button>
                     </div>
                 </section>

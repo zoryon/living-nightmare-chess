@@ -20,6 +20,7 @@ const OPEN_PATHS = [
     "/landing",
     "/pieces",
     "/api/health",
+    "/api/auth/logout",
 ];
 
 // Middleware
@@ -53,8 +54,8 @@ export async function middleware(req: NextRequest) {
             const next = encodeURIComponent(`${pathname}${search || ""}`);
             return NextResponse.redirect(new URL(`/api/auth/refresh/redirect?next=${next}`, req.url));
         }
-        // For non-GET, fall back to login
-        return NextResponse.redirect(new URL("/login", req.url));
+        // For non-GET, fall back to landing
+        return NextResponse.redirect(new URL("/landing", req.url));
     }
 
     // Default: allow request, but mark token as stale
