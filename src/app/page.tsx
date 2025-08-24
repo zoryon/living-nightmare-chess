@@ -54,6 +54,9 @@ const HomePage = () => {
   }, [state.status]);
 
   const handleJoin = (e?: FormEvent) => {
+    // TODO: this feature still need to be implemented in the server
+    return;
+    
     e?.preventDefault();
     if (matchId.trim().length === 0) return;
     router.push(`/match/${encodeURIComponent(matchId.trim())}`);
