@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useMatchmaking } from "@/hooks/useMatchmaking";
 import { secureFetch } from "@/lib/auth/refresh-client";
 import HowToPlay from "@/components/HowToPlay";
+import Tips from "@/components/Tips";
 import PiecesGallery from "@/components/PiecesGallery";
 import PlayCard from "@/components/home/PlayCard";
 import QuickActions from "@/components/home/QuickActions";
@@ -18,6 +19,7 @@ const HomePage = () => {
   const [continueId, setContinueId] = useState<string | null>(null);
   const [queuePlayersNum, setQueuePlayersNum] = useState<number>(0);
   const [howToOpen, setHowToOpen] = useState<boolean>(false);
+  const [tipsOpen, setTipsOpen] = useState<boolean>(false);
   const prevStatusRef = useRef<string | null>(null);
 
   const { state, findMatch, cancel } = useMatchmaking();
@@ -90,7 +92,11 @@ const HomePage = () => {
 
             {/* Quick actions & shortcuts */}
             <div className="space-y-6">
-              <QuickActions continueId={continueId} onOpenHowTo={() => setHowToOpen(true)} />
+              <QuickActions
+                continueId={continueId}
+                onOpenHowTo={() => setHowToOpen(true)}
+                onOpenTips={() => setTipsOpen(true)}
+              />
             </div>
           </div>
         </section>
@@ -101,6 +107,7 @@ const HomePage = () => {
         </section>
       </main>
       <HowToPlay open={howToOpen} onClose={() => setHowToOpen(false)} />
+      <Tips open={tipsOpen} onClose={() => setTipsOpen(false)} />
     </div>
   );
 };

@@ -1,13 +1,16 @@
 "use client";
-import { Button } from "@/components/ui/button";
+
 import { useRouter } from "next/navigation";
+
+import { Button } from "@/components/ui/button";
 
 type Props = {
     continueId: string | null;
     onOpenHowTo: () => void;
+    onOpenTips?: () => void;
 };
 
-const QuickActions = ({ continueId, onOpenHowTo }: Props) => {
+const QuickActions = ({ continueId, onOpenHowTo, onOpenTips }: Props) => {
     const router = useRouter();
     return (
         <div className="rounded-3xl border bg-card/80 p-6 shadow-sm ring-1 ring-border/50">
@@ -19,10 +22,10 @@ const QuickActions = ({ continueId, onOpenHowTo }: Props) => {
                     </Button>
                 )}
                 <Button variant="secondary" onClick={onOpenHowTo}>
-                    Rules & tips
+                    Rules
                 </Button>
-                <Button variant="secondary" onClick={() => router.push("/landing")}>
-                    Explore
+                <Button variant="secondary" onClick={onOpenTips ?? onOpenHowTo}>
+                    Tips & Strategies
                 </Button>
                 <Button variant="ghost" onClick={() => alert("Practice vs AI is coming soon.")} className="text-muted-foreground">
                     Practice vs AI

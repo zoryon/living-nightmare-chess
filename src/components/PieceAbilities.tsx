@@ -84,7 +84,7 @@ export default function PieceAbilities({
                 className={[
                     "fixed z-[50] text-sm text-neutral-100",
                     // Mobile bottom sheet / Desktop side card
-                    "inset-x-0 bottom-0 md:inset-y-8 md:right-8 md:left-auto",
+                    "inset-x-0 bottom-0 md:bottom-8 md:top-auto md:right-8 md:left-auto",
                     "rounded-t-2xl md:rounded-2xl",
                     "shadow-2xl ring-1 ring-neutral-800/60",
                     // Living Nightmare theme
@@ -92,8 +92,8 @@ export default function PieceAbilities({
                     sideAccent,
                     "via-neutral-900 to-black",
                     "p-4 md:p-5",
-                    // Keep it concise and non-scrolly
-                    "max-h-[42vh] md:max-h-[70vh] overflow-hidden",
+                    // Constrain height and allow scrolling with modern scrollbar
+                    "max-h-[42vh] md:max-h-[70vh] overflow-y-auto nice-scroll",
                     "w-full md:w-[360px]",
                 ].join(" ")}
             >
