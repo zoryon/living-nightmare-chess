@@ -6,7 +6,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
 // Custom
-import Providers from "@/components/Providers";
+import Providers from "@/components/global/Providers";
 import BackgroundAccents from "@/components/global/BackgroundAccents";
 import Navbar from "@/components/global/Navbar";
 

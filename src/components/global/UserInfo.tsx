@@ -14,14 +14,18 @@ import {
     DropdownMenuSeparator,
     DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
+import { useMatch } from "@/contexts/MatchContext";
 
 const UserInfo = ({ user }: { user: PublicUser | null }) => {
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [loggingOut, setLoggingOut] = useState(false);
 
     const router = useRouter();
+    const match = useMatch();
 
     const handleLogout = async () => {
+        if (match.gameId && !match.finished) return;
+
         try {
             setLoggingOut(true);
             await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
@@ -100,18 +104,23 @@ const UserInfo = ({ user }: { user: PublicUser | null }) => {
                         </DropdownMenuGroup>
                         {/* Other groups */}
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onSelect={() => setConfirmOpen(true)}>Log out</DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => setConfirmOpen(true)} disabled={!!(match.gameId && !match.finished)}>
+                            {match.gameId && !match.finished ? "Finish match to log out" : "Log out"}
+                        </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
             )}
 
             <ConfirmDialog
                 open={confirmOpen}
-                title="Log out?"
-                description="You’ll be signed out of this device. You can sign back in anytime."
-                confirmText="Log out"
+                title={match.gameId && !match.finished ? "You’re in a match" : "Log out?"}
+                description={match.gameId && !match.finished
+                    ? "You cannot log out while a match is in progress. Finish or resign the match first."
+                    : "You’ll be signed out of this device. You can sign back in anytime."}
+                confirmText={match.gameId && !match.finished ? "Cannot log out" : "Log out"}
                 cancelText="Cancel"
                 loading={loggingOut}
+                confirmDisabled={!!(match.gameId && !match.finished)}
                 onConfirm={() => {
                     setConfirmOpen(false);
                     handleLogout();

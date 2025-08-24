@@ -4,7 +4,7 @@ import { PIECE_IMAGES } from "@/constants";
 import { BoardCell, BoardType, PieceImagesType } from "@/types";
 import { useMatch } from "@/contexts/MatchContext";
 import { getSocket } from "@/lib/socket";
-import PieceAbilities from "@/components/PieceAbilities";
+import PieceAbilities from "@/components/dialogs/PieceAbilities";
 
 const Board = ({ board }: { board: BoardType | null }) => {
     const [isVisible, setIsVisible] = useState(false);

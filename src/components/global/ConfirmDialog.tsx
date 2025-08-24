@@ -18,6 +18,8 @@ export default function ConfirmDialog({
     confirmText = "Confirm",
     cancelText = "Cancel",
     loading = false,
+    confirmDisabled = false,
+    cancelDisabled = false,
     onConfirm,
     onClose,
 }: {
@@ -27,6 +29,8 @@ export default function ConfirmDialog({
     confirmText?: string;
     cancelText?: string;
     loading?: boolean;
+    confirmDisabled?: boolean;
+    cancelDisabled?: boolean;
     onConfirm: () => void;
     onClose: () => void;
 }) {
@@ -40,8 +44,8 @@ export default function ConfirmDialog({
                     )}
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                    <AlertDialogCancel disabled={loading} onClick={onClose} className="cursor-pointer">{cancelText}</AlertDialogCancel>
-                    <AlertDialogAction disabled={loading} onClick={onConfirm} className="cursor-pointer">
+                    <AlertDialogCancel disabled={loading || cancelDisabled} onClick={onClose} className="cursor-pointer">{cancelText}</AlertDialogCancel>
+                    <AlertDialogAction disabled={loading || confirmDisabled} onClick={onConfirm} className="cursor-pointer">
                         {loading ? "Please wait…" : confirmText}
                     </AlertDialogAction>
                 </AlertDialogFooter>

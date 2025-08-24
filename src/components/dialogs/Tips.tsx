@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-export default function Tips({ open, onClose }: { open: boolean; onClose: () => void }) {
+const Tips = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
     useEffect(() => {
         function onKey(e: KeyboardEvent) {
             if (e.key === "Escape") onClose();
@@ -46,3 +46,5 @@ export default function Tips({ open, onClose }: { open: boolean; onClose: () => 
         </div>
     );
 }
+
+export default Tips;

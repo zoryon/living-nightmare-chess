@@ -6,14 +6,16 @@ import { useRouter } from "next/navigation";
 
 import { useMatchmaking } from "@/hooks/useMatchmaking";
 import { secureFetch } from "@/lib/auth/refresh-client";
-import HowToPlay from "@/components/HowToPlay";
-import Tips from "@/components/Tips";
+import { useMatch } from "@/contexts/MatchContext";
+import Rules from "@/components/dialogs/Rules";
+import Tips from "@/components/dialogs/Tips";
 import PiecesGallery from "@/components/PiecesGallery";
 import PlayCard from "@/components/home/PlayCard";
 import QuickActions from "@/components/home/QuickActions";
 
 const HomePage = () => {
   const router = useRouter();
+  const match = useMatch();
 
   const [matchId, setMatchId] = useState<string>("");
   const [queuePlayersNum, setQueuePlayersNum] = useState<number>(0);
@@ -74,6 +76,7 @@ const HomePage = () => {
                 onFindMatch={findMatch}
                 onCancelSearch={() => { cancel(); setTimeout(() => { fetchQueue(); }, 250); }}
                 onJoinById={handleJoin}
+                disableFindMatch={Boolean(match.gameId && !match.finished)}
               />
             </div>
 
@@ -92,7 +95,7 @@ const HomePage = () => {
           <PiecesGallery />
         </section>
       </main>
-      <HowToPlay open={howToOpen} onClose={() => setHowToOpen(false)} />
+      <Rules open={howToOpen} onClose={() => setHowToOpen(false)} />
       <Tips open={tipsOpen} onClose={() => setTipsOpen(false)} />
     </div>
   );

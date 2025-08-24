@@ -14,6 +14,7 @@ type Props = {
     onFindMatch: () => void;
     onCancelSearch: () => void;
     onJoinById: (e?: FormEvent) => void;
+    disableFindMatch?: boolean;
 };
 
 const PlayCard = ({
@@ -25,6 +26,7 @@ const PlayCard = ({
     onFindMatch,
     onCancelSearch,
     onJoinById,
+    disableFindMatch
 }: Props) => {
     const canJoin = matchId.trim().length > 0;
 
@@ -57,7 +59,14 @@ const PlayCard = ({
                             </Button>
                         </>
                     ) : (
-                        <Button size="default" onClick={onFindMatch} className="cursor-pointer">
+                        <Button
+                            size="default"
+                            onClick={onFindMatch}
+                            disabled={!!disableFindMatch}
+                            variant={disableFindMatch ? "secondary" : "default"}
+                            className={disableFindMatch ? "cursor-not-allowed opacity-60" : "cursor-pointer"}
+                            title={disableFindMatch ? "Resume your ongoing match or clear it to find a new one" : undefined}
+                        >
                             Find Match
                         </Button>
                     )}

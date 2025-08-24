@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Image from "next/image";
 
 import { PIECES, PIECE_IMAGES } from "@/constants";
-import PieceAbilities from "@/components/PieceAbilities";
+import PieceAbilities from "@/components/dialogs/PieceAbilities";
 
 type GalleryItem = {
   key: string;

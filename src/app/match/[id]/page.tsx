@@ -7,7 +7,7 @@ import Clocks from "@/components/Clocks";
 import { useMatch } from "@/contexts/MatchContext";
 import { useMatchHydration } from "@/hooks/useMatchHydration";
 import { getSocket } from "@/lib/socket";
-import PromotionModal from "@/components/PromotionModal";
+import PromotionModal from "@/components/modals/PromotionModal";
 
 export default function MatchPage() {
   const { id } = useParams<{ id: string }>();
