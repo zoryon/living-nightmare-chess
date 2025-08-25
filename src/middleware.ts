@@ -52,7 +52,7 @@ export async function middleware(req: NextRequest) {
         }
         if (method === "GET") {
             const next = encodeURIComponent(`${pathname}${search || ""}`);
-            return NextResponse.redirect(new URL(`/api/auth/refresh/redirect?next=${next}`, req.url));
+            return NextResponse.redirect(new URL(`/api/sessions/current/refresh/redirect?next=${next}`, req.url));
         }
         // For non-GET, fall back to landing
         return NextResponse.redirect(new URL("/landing", req.url));
