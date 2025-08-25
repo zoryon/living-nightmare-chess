@@ -47,7 +47,7 @@ export async function middleware(req: NextRequest) {
     // path-scoped refresh cookie can be sent. Only for GET to avoid method issues.
     if (!isLoggedIn && !PUBLIC_ONLY_PATHS.some(path => pathname.startsWith(path))) {
         // Allow direct access to the refresh path family (cookie will be present there)
-        if (pathname.startsWith("/api/auth/refresh")) {
+        if (pathname.startsWith("/api/sessions/current/refresh")) {
             return NextResponse.next();
         }
         if (method === "GET") {

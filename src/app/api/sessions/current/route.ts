@@ -34,11 +34,11 @@ export async function DELETE() {
                 await prisma.refresh_token.deleteMany({ where: { deviceId } });
             }
 
-            cookieStore.set("refresh_token", "", { expires: new Date(0), path: "/api/auth/refresh" });
+            cookieStore.set("refresh_token", "", { expires: new Date(0), path: "/api/sessions/current/refresh" });
             cookieStore.set("refresh_token", "", { expires: new Date(0), path: "/" });
         }
     } catch {
-        cookieStore.set("refresh_token", "", { expires: new Date(0), path: "/api/auth/refresh" });
+        cookieStore.set("refresh_token", "", { expires: new Date(0), path: "/api/sessions/current/refresh" });
         cookieStore.set("refresh_token", "", { expires: new Date(0), path: "/" });
     }
 

@@ -35,7 +35,7 @@ export async function POST(req: Request) {
         });
         deviceId = device.id;
     } else {
-        await prisma.device.update({ where: { id: deviceId }, data: { lastSeenAt: new Date() } }).catch(() => {});
+        await prisma.device.update({ where: { id: deviceId }, data: { lastSeenAt: new Date() } }).catch(() => { });
     }
 
     const refreshTokenRecord: refresh_token | null = deviceId ? await prisma.refresh_token.findFirst({
@@ -48,7 +48,7 @@ export async function POST(req: Request) {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             sameSite: "strict",
-            path: "/api/auth/refresh",
+            path: "/api/sessions/current/refresh",
             expires: refreshTokenRecord.expiresAt!
         });
     } else {

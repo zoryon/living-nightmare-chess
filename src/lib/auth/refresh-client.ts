@@ -7,7 +7,7 @@ async function callRefresh(): Promise<boolean> {
         const deviceId = getDeviceId();
         const headers: Record<string, string> = {};
         if (deviceId) headers["x-device-id"] = String(deviceId);
-        const res = await fetch("/api/auth/refresh", {
+        const res = await fetch("/api/sessions/current/refresh", {
             method: "POST",
             credentials: "include",
             headers
