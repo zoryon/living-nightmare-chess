@@ -99,9 +99,6 @@ const UserInfo = ({ user }: { user: PublicUser | null }) => {
                         {/* Info Group */}
                         <DropdownMenuLabel>User Info</DropdownMenuLabel>
                         <DropdownMenuGroup>
-                            <DropdownMenuItem disabled>
-                                {user.email || "error"}
-                            </DropdownMenuItem>
                             <DropdownMenuItem asChild>
                                 <Link href="/friends">Friends</Link>
                             </DropdownMenuItem>
