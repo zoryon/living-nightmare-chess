@@ -45,7 +45,7 @@ export default function FriendsPage() {
   };
 
   const remove = async (userId: number) => {
-    await fetch(`/api/friends`, { method: "DELETE", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId }) });
+    await fetch(`/api/users/me/friends/${userId}`, { method: "DELETE", credentials: "include" });
     load();
   };
 
