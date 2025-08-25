@@ -47,7 +47,7 @@ export default function RegisterPage() {
             const headers: Record<string, string> = { "Content-Type": "application/json" };
             if (existingDeviceId) headers["x-device-id"] = String(existingDeviceId);
 
-            const res = await secureFetch("/api/auth/register", {
+            const res = await secureFetch("/api/users", {
                 method: "POST",
                 headers,
                 body: JSON.stringify(values)

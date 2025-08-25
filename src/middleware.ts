@@ -9,7 +9,7 @@ const PUBLIC_ONLY_PATHS = [
     "/register", 
     "/register/confirm",
     "/api/sessions",
-    "/api/auth/register",
+    "/api/users",
     "/api/auth/register/confirm",
 ];
 
