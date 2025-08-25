@@ -19,11 +19,13 @@ const ConfirmRegistrationClient = ({
 
         async function confirmRegistration() {
             try {
-                const res = await fetch(`/api/auth/register/confirm?token=${token}`, {
-                    method: "GET",
+                const res = await fetch(`/api/email-verifications`, {
+                    method: "POST",
                     headers: {
                         "Accept": "application/json",
+                        "Content-Type": "application/json",
                     },
+                    body: JSON.stringify({ token })
                 }).then(res => res.json());
 
                 if (!res.success) {

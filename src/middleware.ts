@@ -10,7 +10,7 @@ const PUBLIC_ONLY_PATHS = [
     "/register/confirm",
     "/api/sessions",
     "/api/users",
-    "/api/auth/register/confirm",
+    "/api/email-verifications",
 ];
 
 // Paths accessible by everyone (optional, e.g. static)

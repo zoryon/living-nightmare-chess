@@ -5,9 +5,10 @@ import { setAccessTokenCookie, setRefreshTokenCookie } from "@/lib/jwt";
 import { extractClientIp, getGeolocation } from "@/lib/utils";
 import { verifyEmailToken } from "@/lib/jwt-edge";
 
-export async function GET(req: NextRequest) {
-    const { searchParams } = new URL(req.url);
-    const token = searchParams.get("token");
+// Verify user's email using a confirmation token
+export async function POST(req: NextRequest) {
+    const body = await req.json().catch(() => ({} as any));
+    const token: string | undefined = body?.token;
     if (!token) {
         return new Response(JSON.stringify({ error: "Token is required" }), { status: 400 });
     }
@@ -17,27 +18,15 @@ export async function GET(req: NextRequest) {
         return new Response(JSON.stringify({ error: "Invalid or expired token" }), { status: 400 });
     }
 
-    // Verify the user's account
-    await prisma.user.update({
-        where: {
-            id: payload.userId
-        },
-        data: {
-            isEmailVerified: true
-        }
-    });
+    // Mark user as verified (idempotent: always set true)
+    await prisma.user.update({ where: { id: payload.userId }, data: { isEmailVerified: true } });
 
     const ipAddress = extractClientIp(req.headers);
     const geo = getGeolocation(req.headers);
 
-    // Automatically log-in (with device id)
-    await setRefreshTokenCookie({
-        userId: payload!.userId,
-        deviceId: payload!.deviceId,
-        ipAddress,
-        geo
-    });
-    await setAccessTokenCookie(payload!.userId!);
+    // Auto-login on this device by issuing refresh/access tokens
+    await setRefreshTokenCookie({ userId: payload.userId, deviceId: payload.deviceId, ipAddress, geo });
+    await setAccessTokenCookie(payload.userId);
 
     return new Response(JSON.stringify({ success: true }), { status: 200 });
 }
