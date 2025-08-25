@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ChallengeButtons } from "@/components/friends/ChallengeButtons";
 import { Input } from "@/components/ui/input";
 
 type Friend = { id: number; username: string };
@@ -65,7 +66,10 @@ export default function FriendsPage() {
           {friends.map(f => (
             <li key={f.id} className="flex items-center justify-between border rounded px-3 py-2">
               <span>@{f.username}</span>
-              <Button variant="ghost" onClick={() => remove(f.id)}>Remove</Button>
+              <div className="flex items-center gap-2">
+                <ChallengeButtons friendId={f.id} />
+                <Button variant="ghost" onClick={() => remove(f.id)}>Remove</Button>
+              </div>
             </li>
           ))}
           {friends.length === 0 && <div className="text-sm text-muted-foreground">No friends yet.</div>}

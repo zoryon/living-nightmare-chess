@@ -11,6 +11,7 @@ import { setupMatch } from "@/lib/match/setup";
 
 export function useMatchmaking() {
   const [state, setState] = useState<MatchState>({ status: "idle" });
+  const [blockedByInvite, setBlockedByInvite] = useState<boolean>(false);
   const socketRef = useRef<Socket | null>(null);
   const router = useRouter();
   const searchingRef = useRef(false);
@@ -29,6 +30,15 @@ export function useMatchmaking() {
       s.on("connect_error", (err) => {
         setState({ status: "error", message: err.message });
       });
+
+      // Initial check: if you have an outgoing pending challenge, block queueing
+      try {
+        const res = await fetch("/api/users/me/challenges", { credentials: "include" });
+        if (res.ok) {
+          const data = await res.json();
+          setBlockedByInvite(Array.isArray(data?.outgoing) && data.outgoing.length > 0);
+        }
+      } catch { }
 
       s.on("match:searching", () => {
         setState({ status: "searching" });
@@ -49,7 +59,7 @@ export function useMatchmaking() {
         setupMatch({ setBoard, setGameId, game });
         if (typeof (game as any).turn === "number") setCurrentTurnColor((game as any).turn % 2 === 1 ? "white" : "black");
         // If server attached clocks on start via a preceding match:update, they will be set by hydration; as a fallback, we can request state after navigating.
-  fetch("/api/users/me", { method: "GET", credentials: "include" })
+        fetch("/api/users/me", { method: "GET", credentials: "include" })
           .then(r => r.json())
           .then((data) => {
             const uid: number | undefined = data?.publicUser?.id;
@@ -78,7 +88,7 @@ export function useMatchmaking() {
         // Create board
         setupMatch({ setBoard, setGameId, game });
         if (typeof (game as any).turn === "number") setCurrentTurnColor((game as any).turn % 2 === 1 ? "white" : "black");
-  fetch("/api/users/me", { method: "GET", credentials: "include" })
+        fetch("/api/users/me", { method: "GET", credentials: "include" })
           .then(r => r.json())
           .then((data) => {
             const uid: number | undefined = data?.publicUser?.id;
@@ -136,6 +146,21 @@ export function useMatchmaking() {
         setState({ status: "idle" });
         searchingRef.current = false;
       });
+
+      // Challenge lifecycle reflecting local block state
+      const refetchBlock = async () => {
+        try {
+          const r = await fetch("/api/users/me/challenges", { credentials: "include" });
+          if (r.ok) {
+            const d = await r.json();
+            setBlockedByInvite(Array.isArray(d?.outgoing) && d.outgoing.length > 0);
+          }
+        } catch { }
+      };
+      s.on("challenge:created", () => setBlockedByInvite(true));
+      s.on("challenge:waiting", () => setBlockedByInvite(true));
+      s.on("challenge:cancelled", refetchBlock);
+      s.on("challenge:declined", refetchBlock);
     })();
 
     return () => {
@@ -156,12 +181,20 @@ export function useMatchmaking() {
         s.off("error:match_queue_failed");
         s.off("match:update");
         s.off("match:cancelled");
+        s.off("challenge:created");
+        s.off("challenge:waiting");
+        s.off("challenge:cancelled");
+        s.off("challenge:declined");
       }
     };
   }, [router]);
 
   const findMatch = useCallback(async () => {
     try {
+      if (blockedByInvite) {
+        setState({ status: "error", message: "You have a pending friend invite. Cancel it to queue." });
+        return;
+      }
       const s = await getSocket();
       if (!s.connected) await new Promise<void>((res, rej) => {
         s.once("connect", () => res());
@@ -180,7 +213,7 @@ export function useMatchmaking() {
       setState({ status: "error", message: e?.message || "Connection failed" });
       searchingRef.current = false;
     }
-  }, []);
+  }, [blockedByInvite]);
 
   const cancel = useCallback(async () => {
     try {
@@ -195,5 +228,5 @@ export function useMatchmaking() {
     }
   }, []);
 
-  return { state, findMatch, cancel };
+  return { state, findMatch, cancel, blockedByInvite };
 }

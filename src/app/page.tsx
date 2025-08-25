@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { FormEvent } from "react";
-import { useRouter } from "next/navigation";
 
 import { useMatchmaking } from "@/hooks/useMatchmaking";
 import { secureFetch } from "@/lib/auth/refresh-client";
@@ -14,16 +12,14 @@ import PlayCard from "@/components/home/PlayCard";
 import QuickActions from "@/components/home/QuickActions";
 
 const HomePage = () => {
-  const router = useRouter();
   const match = useMatch();
 
-  const [matchId, setMatchId] = useState<string>("");
   const [queuePlayersNum, setQueuePlayersNum] = useState<number>(0);
   const [howToOpen, setHowToOpen] = useState<boolean>(false);
   const [tipsOpen, setTipsOpen] = useState<boolean>(false);
   const prevStatusRef = useRef<string | null>(null);
 
-  const { state, findMatch, cancel } = useMatchmaking();
+  const { state, findMatch, cancel, blockedByInvite } = useMatchmaking();
 
   // Queue polling (token-aware)
   async function fetchQueue() {
@@ -53,15 +49,6 @@ const HomePage = () => {
     prevStatusRef.current = state.status;
   }, [state.status]);
 
-  const handleJoin = (e?: FormEvent) => {
-    // TODO: this feature still need to be implemented in the server
-    return;
-
-    e?.preventDefault();
-    if (matchId.trim().length === 0) return;
-    router.push(`/match/${encodeURIComponent(matchId.trim())}`);
-  };
-
   return (
     <div className="relative min-h-dvh flex flex-col">
       <main className="flex-1">
@@ -74,12 +61,9 @@ const HomePage = () => {
                 status={state.status}
                 message={("message" in state ? state.message : undefined)}
                 queuePlayersNum={queuePlayersNum}
-                matchId={matchId}
-                setMatchId={setMatchId}
                 onFindMatch={findMatch}
                 onCancelSearch={() => { cancel(); setTimeout(() => { fetchQueue(); }, 250); }}
-                onJoinById={handleJoin}
-                disableFindMatch={Boolean(match.gameId && !match.finished)}
+                disableFindMatch={Boolean(match.gameId && !match.finished) || blockedByInvite}
               />
             </div>
 

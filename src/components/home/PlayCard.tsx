@@ -1,19 +1,17 @@
 "use client";
 
-import type { FormEvent } from "react";
+import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import Status from "@/components/Status";
+import { useChallenges } from "@/contexts/ChallengesContext";
 
 type Props = {
     status: string;
     message?: string | null;
     queuePlayersNum: number;
-    matchId: string;
-    setMatchId: (v: string) => void;
     onFindMatch: () => void;
     onCancelSearch: () => void;
-    onJoinById: (e?: FormEvent) => void;
     disableFindMatch?: boolean;
 };
 
@@ -21,14 +19,11 @@ const PlayCard = ({
     status,
     message,
     queuePlayersNum,
-    matchId,
-    setMatchId,
     onFindMatch,
     onCancelSearch,
-    onJoinById,
     disableFindMatch
 }: Props) => {
-    const canJoin = matchId.trim().length > 0;
+    const { outgoing } = useChallenges();
 
     return (
         <div className="rounded-3xl border bg-card/80 p-6 sm:p-7 shadow-sm ring-1 ring-border/50">
@@ -62,10 +57,10 @@ const PlayCard = ({
                         <Button
                             size="default"
                             onClick={onFindMatch}
-                            disabled={!!disableFindMatch}
-                            variant={disableFindMatch ? "secondary" : "default"}
-                            className={disableFindMatch ? "cursor-not-allowed opacity-60" : "cursor-pointer"}
-                            title={disableFindMatch ? "Resume your ongoing match or clear it to find a new one" : undefined}
+                            disabled={!!disableFindMatch || Object.keys(outgoing).length > 0}
+                            variant={(disableFindMatch || Object.keys(outgoing).length > 0) ? "secondary" : "default"}
+                            className={(disableFindMatch || Object.keys(outgoing).length > 0) ? "cursor-not-allowed opacity-60" : "cursor-pointer"}
+                            title={disableFindMatch ? "Resume your ongoing match or clear it to find a new one" : (Object.keys(outgoing).length > 0 ? "Cancel your pending friend invite to queue" : undefined)}
                         >
                             Find Match
                         </Button>
@@ -73,17 +68,11 @@ const PlayCard = ({
                 </div>
             </div>
 
-            <form onSubmit={onJoinById} className="mt-6 grid gap-3 sm:grid-cols-[1fr_auto]">
-                <input
-                    value={matchId}
-                    onChange={(e) => setMatchId(e.target.value)}
-                    placeholder="Enter match ID to join friend"
-                    className="h-12 w-full rounded-md border bg-background px-3 text-sm outline-none ring-offset-background placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                />
-                <Button type="submit" disabled={!canJoin} variant={canJoin ? "default" : "secondary"}>
-                    Join by ID
+            <Link href="/friends" className="mt-7 grid gap-3 sm:grid-cols-[1fr_auto]">
+                <Button disabled variant={"secondary"} className="cursor-pointer">
+                    Play with a friend
                 </Button>
-            </form>
+            </Link>
 
             <div className="mt-4 space-y-2">
                 {status === "error" && message && (

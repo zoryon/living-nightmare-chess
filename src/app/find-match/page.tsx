@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { secureFetch } from "@/lib/auth/refresh-client";
 
 export default function FindMatchPage() {
-  const { state, findMatch, cancel } = useMatchmaking();
+  const { state, findMatch, cancel, blockedByInvite } = useMatchmaking();
 
   const [queuePlayersNum, setQueuePlayersNum] = useState<number>(0);
   const prevStatusRef = useRef<string | null>(null);
@@ -75,7 +75,9 @@ export default function FindMatchPage() {
               </Button>
             </>
           ) : (
-            <Button size="lg" onClick={findMatch} className="cursor-pointer">Find Match</Button>
+            <Button size="lg" onClick={findMatch} disabled={blockedByInvite} className="cursor-pointer">
+              {blockedByInvite ? "Blocked by friend invite" : "Find Match"}
+            </Button>
           )}
         </div>
 
@@ -86,6 +88,9 @@ export default function FindMatchPage() {
         <Status state={state.status} />
         {state.status === "error" && state.message && (
           <p className="text-sm text-red-500" role="alert">{state.message}</p>
+        )}
+        {blockedByInvite && state.status !== "searching" && (
+          <p className="text-xs text-muted-foreground">Cancel your pending friend challenge from the Friends page to queue for a random match.</p>
         )}
       </div>
     </main>
