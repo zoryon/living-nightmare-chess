@@ -24,7 +24,7 @@ const Navbar = () => {
         let aborted = false;
         const fetchMe = async () => {
             try {
-                const res = await fetch("/api/me", { credentials: "include" });
+                const res = await fetch("/api/users/me", { method: "GET", credentials: "include" });
                 if (res.ok) {
                     const data = await res.json();
                     if (!aborted && data?.publicUser) setUser(data.publicUser as PublicUser);

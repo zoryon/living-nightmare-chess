@@ -1,11 +1,11 @@
-import { NextRequest } from "next/server";
-
+import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { verifyAccessToken } from "@/lib/jwt-edge";
 import { PublicUser } from "@/types";
 
-export async function GET(req: NextRequest): Promise<Response> {
-    const accessToken = req.cookies.get("access_token")?.value || "";
+export async function GET(): Promise<Response> {
+    const cookieStore = await cookies();
+    const accessToken = cookieStore.get("access_token")?.value || "";
 
     // Verify token
     const payload = await verifyAccessToken(accessToken);

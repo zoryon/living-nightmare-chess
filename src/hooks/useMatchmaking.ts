@@ -49,7 +49,7 @@ export function useMatchmaking() {
         setupMatch({ setBoard, setGameId, game });
         if (typeof (game as any).turn === "number") setCurrentTurnColor((game as any).turn % 2 === 1 ? "white" : "black");
         // If server attached clocks on start via a preceding match:update, they will be set by hydration; as a fallback, we can request state after navigating.
-        fetch("/api/me", { method: "GET", credentials: "include" })
+  fetch("/api/users/me", { method: "GET", credentials: "include" })
           .then(r => r.json())
           .then((data) => {
             const uid: number | undefined = data?.publicUser?.id;
@@ -78,7 +78,7 @@ export function useMatchmaking() {
         // Create board
         setupMatch({ setBoard, setGameId, game });
         if (typeof (game as any).turn === "number") setCurrentTurnColor((game as any).turn % 2 === 1 ? "white" : "black");
-        fetch("/api/me", { method: "GET", credentials: "include" })
+  fetch("/api/users/me", { method: "GET", credentials: "include" })
           .then(r => r.json())
           .then((data) => {
             const uid: number | undefined = data?.publicUser?.id;

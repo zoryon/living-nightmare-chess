@@ -31,7 +31,7 @@ export function useMatchHydration(matchId: number) {
                     if (game && typeof game.id === "number" && game.id === matchId) {
                         setupMatch({ setBoard, setGameId, game });
                         // Fetch current user id and set my color
-                        fetch("/api/me", { method: "GET", credentials: "include" })
+                        fetch("/api/users/me", { method: "GET", credentials: "include" })
                             .then(r => r.json())
                             .then((data) => {
                                 const uid: number | undefined = data?.publicUser?.id;
