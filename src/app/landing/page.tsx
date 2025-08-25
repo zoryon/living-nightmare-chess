@@ -31,13 +31,12 @@ const LandingPage = () => {
                             </p>
                             <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3">
                                 <Button asChild size="lg">
-                                    <Link href="/find-match">Find a match</Link>
+                                    <Link href="/login">Play</Link>
                                 </Button>
                                 <Button asChild variant="secondary" size="lg">
                                     <Link href="#features">Explore features</Link>
                                 </Button>
                             </div>
-                            <p className="text-xs text-muted-foreground/80">No account? Play as guest from the matchmaking screen.</p>
                         </div>
 
                         {/* Decorative Board Placeholder */}
@@ -87,7 +86,7 @@ const LandingPage = () => {
                 <div className="max-w-6xl mx-auto px-6">
                     <p>
                         Ready?{' '}
-                        <Link href="/find-match" className="underline underline-offset-4 hover:text-foreground">
+                        <Link href="/login" className="underline underline-offset-4 hover:text-foreground">
                             Find a match now
                         </Link>
                         .
