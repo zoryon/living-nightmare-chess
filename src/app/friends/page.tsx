@@ -14,13 +14,14 @@ export default function FriendsPage() {
   const [loading, setLoading] = useState(false);
 
   const load = async () => {
-    const [fr, rq] = await Promise.all([
+    const [fr, incomingRes, outgoingRes] = await Promise.all([
       fetch("/api/users/me/friends", { credentials: "include" }).then(r => r.json()),
-      fetch("/api/friends/requests", { credentials: "include" }).then(r => r.json())
+      fetch("/api/users/me/friends/requests?direction=incoming", { credentials: "include" }).then(r => r.json()),
+      fetch("/api/users/me/friends/requests?direction=outgoing", { credentials: "include" }).then(r => r.json()),
     ]);
     setFriends(fr.friends ?? []);
-    setIncoming(rq.incoming ?? []);
-    setOutgoing(rq.outgoing ?? []);
+    setIncoming(incomingRes.requests ?? []);
+    setOutgoing(outgoingRes.requests ?? []);
   };
 
   useEffect(() => { load(); }, []);
