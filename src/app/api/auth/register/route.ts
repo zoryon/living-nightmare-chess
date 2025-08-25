@@ -31,6 +31,10 @@ export async function POST(req: NextRequest) {
 
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
 
+    // Enforce unique username now that it is unique in DB
+    const existingUsername = await prisma.user.findFirst({ where: { username } });
+    if (existingUsername) return new Response(JSON.stringify({ error: "Username already taken" }), { status: 409 });
+
     const user = await prisma.user.create({
         data: {
             email,

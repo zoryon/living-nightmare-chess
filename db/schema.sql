@@ -11,7 +11,8 @@ CREATE TABLE `user` (
     `createdAt` datetime DEFAULT CURRENT_TIMESTAMP,
     `updatedAt` datetime DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`),
-    UNIQUE KEY `email` (`email`)
+    UNIQUE KEY `email` (`email`),
+    UNIQUE KEY `username` (`username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE `device` (
@@ -114,3 +115,32 @@ CREATE TABLE `match_queue` (
     UNIQUE KEY `userId` (`userId`),
     FOREIGN KEY (`userId`) REFERENCES `user` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Friend system tables
+CREATE TABLE `friend_request` (
+    `id` int NOT NULL AUTO_INCREMENT,
+    `fromUserId` int NOT NULL,
+    `toUserId` int NOT NULL,
+    `status` ENUM('PENDING','ACCEPTED','DECLINED','CANCELLED') NOT NULL DEFAULT 'PENDING',
+    `createdAt` datetime DEFAULT CURRENT_TIMESTAMP,
+    `updatedAt` datetime DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `unique_request_pair` (`fromUserId`,`toUserId`),
+    KEY `fromUserId` (`fromUserId`),
+    KEY `toUserId` (`toUserId`),
+    CONSTRAINT `friend_request_from_fk` FOREIGN KEY (`fromUserId`) REFERENCES `user` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `friend_request_to_fk` FOREIGN KEY (`toUserId`) REFERENCES `user` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE `friendship` (
+    `id` int NOT NULL AUTO_INCREMENT,
+    `userAId` int NOT NULL,
+    `userBId` int NOT NULL,
+    `createdAt` datetime DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `unique_friendship_ordered` (`userAId`,`userBId`),
+    KEY `userAId` (`userAId`),
+    KEY `userBId` (`userBId`),
+    CONSTRAINT `friendship_userA_fk` FOREIGN KEY (`userAId`) REFERENCES `user` (`id`) ON DELETE CASCADE,
+    CONSTRAINT `friendship_userB_fk` FOREIGN KEY (`userBId`) REFERENCES `user` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

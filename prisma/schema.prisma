@@ -93,7 +93,7 @@ model refresh_token {
 model user {
   id              Int             @id @default(autoincrement())
   email           String?         @unique(map: "email") @db.VarChar(255)
-  username        String          @db.VarChar(25)
+  username        String          @unique(map: "username") @db.VarChar(25)
   passwordHash    String          @db.Text
   isEmailVerified Boolean?        @default(false)
   createdAt       DateTime?       @default(now()) @db.DateTime(0)
@@ -105,6 +105,45 @@ model user {
   match_player    match_player[]
   match_queue     match_queue?
   refresh_token   refresh_token[]
+  friendRequestsSent     friend_request[] @relation("fromUser")
+  friendRequestsReceived friend_request[] @relation("toUser")
+  friendshipsA           friendship[]     @relation("userA")
+  friendshipsB           friendship[]     @relation("userB")
+}
+
+model friend_request {
+  id         Int                    @id @default(autoincrement())
+  fromUserId Int
+  toUserId   Int
+  status     friend_request_status  @default(PENDING)
+  createdAt  DateTime?              @default(now()) @db.DateTime(0)
+  updatedAt  DateTime?              @default(now()) @db.DateTime(0)
+  fromUser   user                   @relation("fromUser", fields: [fromUserId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "friend_request_from_fk")
+  toUser     user                   @relation("toUser", fields: [toUserId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "friend_request_to_fk")
+
+  @@unique([fromUserId, toUserId], map: "unique_request_pair")
+  @@index([toUserId], map: "toUserId")
+  @@index([fromUserId], map: "fromUserId")
+}
+
+model friendship {
+  id        Int       @id @default(autoincrement())
+  userAId   Int
+  userBId   Int
+  createdAt DateTime? @default(now()) @db.DateTime(0)
+  userA     user      @relation("userA", fields: [userAId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "friendship_userA_fk")
+  userB     user      @relation("userB", fields: [userBId], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "friendship_userB_fk")
+
+  @@unique([userAId, userBId], map: "unique_friendship_ordered")
+  @@index([userBId], map: "userBId")
+  @@index([userAId], map: "userAId")
+}
+
+enum friend_request_status {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELLED
 }
 
 model device {

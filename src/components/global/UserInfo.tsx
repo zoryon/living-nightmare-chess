@@ -15,6 +15,7 @@ import {
     DropdownMenuGroup,
 } from "@/components/ui/dropdown-menu";
 import { useMatch } from "@/contexts/MatchContext";
+import Link from "next/link";
 
 const UserInfo = ({ user }: { user: PublicUser | null }) => {
     const [confirmOpen, setConfirmOpen] = useState(false);
@@ -100,6 +101,9 @@ const UserInfo = ({ user }: { user: PublicUser | null }) => {
                         <DropdownMenuGroup>
                             <DropdownMenuItem disabled>
                                 {user.email || "error"}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                                <Link href="/friends">Friends</Link>
                             </DropdownMenuItem>
                         </DropdownMenuGroup>
                         {/* Other groups */}
