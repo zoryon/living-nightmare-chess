@@ -29,7 +29,7 @@ export default function FriendsPage() {
   const send = async () => {
     if (!username) return;
     setLoading(true);
-    await fetch("/api/friends/requests", {
+  await fetch("/api/users/me/friends/requests", {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
@@ -41,7 +41,7 @@ export default function FriendsPage() {
   };
 
   const act = async (id: number, action: "accept" | "decline") => {
-    await fetch(`/api/friends/requests/${id}`, { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }) });
+    await fetch(`/api/users/me/friends/requests/${id}`, { method: "PATCH", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: action === "accept" ? "ACCEPTED" : "DECLINED" }) });
     load();
   };
 
@@ -94,7 +94,7 @@ export default function FriendsPage() {
           {outgoing.map(r => (
             <li key={r.id} className="flex items-center justify-between border rounded px-3 py-2">
               <span>@{r.to.username}</span>
-              <Button size="sm" variant="ghost" onClick={async () => { await fetch("/api/friends/requests", { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "cancel", requestId: r.id }) }); load(); }}>Cancel</Button>
+              <Button size="sm" variant="ghost" onClick={async () => { await fetch(`/api/users/me/friends/requests/${r.id}`, { method: "DELETE", credentials: "include" }); load(); }}>Cancel</Button>
             </li>
           ))}
           {outgoing.length === 0 && <div className="text-sm text-muted-foreground">No outgoing requests.</div>}
