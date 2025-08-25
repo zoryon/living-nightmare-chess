@@ -15,7 +15,7 @@ export default function FriendsPage() {
 
   const load = async () => {
     const [fr, rq] = await Promise.all([
-      fetch("/api/friends", { credentials: "include" }).then(r => r.json()),
+      fetch("/api/users/me/friends", { credentials: "include" }).then(r => r.json()),
       fetch("/api/friends/requests", { credentials: "include" }).then(r => r.json())
     ]);
     setFriends(fr.friends ?? []);
