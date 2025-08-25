@@ -28,7 +28,7 @@ const HomePage = () => {
   // Queue polling (token-aware)
   async function fetchQueue() {
     try {
-      const res = await secureFetch("/api/queue/current", { method: "GET" });
+      const res = await secureFetch("/api/queues/match/summary", { method: "GET" });
       if (!res.ok) return;
       const data = await res.json();
       setQueuePlayersNum(typeof data?.playersNum === "number" ? data.playersNum : 0);
@@ -56,7 +56,7 @@ const HomePage = () => {
   const handleJoin = (e?: FormEvent) => {
     // TODO: this feature still need to be implemented in the server
     return;
-    
+
     e?.preventDefault();
     if (matchId.trim().length === 0) return;
     router.push(`/match/${encodeURIComponent(matchId.trim())}`);

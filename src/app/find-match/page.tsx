@@ -11,8 +11,8 @@ export default function FindMatchPage() {
   const [queuePlayersNum, setQueuePlayersNum] = useState<number>(0);
   const prevStatusRef = useRef<string | null>(null);
 
-  async function fetchQueue() { 
-    const res = await secureFetch("/api/queue/current", { method: "GET" });
+  async function fetchQueue() {
+    const res = await secureFetch("/api/queues/match/summary", { method: "GET" });
     if (!res.ok) return;
 
     const data = await res.json();
