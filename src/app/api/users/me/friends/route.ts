@@ -1,17 +1,8 @@
-import { NextRequest } from "next/server";
-
 import { prisma } from "@/lib/prisma";
-import { verifyAccessToken } from "@/lib/jwt-edge";
+import { getUserId } from "@/lib/server";
 
-async function getUserId(req: NextRequest): Promise<number | null> {
-    const accessToken = req.cookies.get("access_token")?.value || "";
-    const payload = await verifyAccessToken(accessToken);
-    const uid = payload && typeof payload.userId === "number" ? payload.userId : null;
-    return uid;
-}
-
-export async function GET(req: NextRequest): Promise<Response> {
-    const userId = await getUserId(req);
+export async function GET(): Promise<Response> {
+    const userId = await getUserId();
     if (!userId) return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401 });
 
     const friends = await prisma.friendship.findMany({

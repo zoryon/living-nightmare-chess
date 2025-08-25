@@ -1,17 +1,11 @@
 import { NextRequest } from "next/server";
 
 import { prisma } from "@/lib/prisma";
-import { verifyAccessToken } from "@/lib/jwt-edge";
-
-async function getUserId(req: NextRequest): Promise<number | null> {
-    const accessToken = req.cookies.get("access_token")?.value || "";
-    const payload = await verifyAccessToken(accessToken);
-    return payload && typeof payload.userId === "number" ? payload.userId : null;
-}
+import { getUserId } from "@/lib/server";
 
 // DELETE /api/users/me/friends/requests/:id (cancel own outgoing pending)
 export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: string }> }): Promise<Response> {
-    const userId = await getUserId(req);
+    const userId = await getUserId();
     if (!userId) return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401 });
 
     const { id } = await ctx.params;
@@ -27,7 +21,7 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
 
 // PATCH /api/users/me/friends/requests/:id { status: "ACCEPTED" | "DECLINED" }
 export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }): Promise<Response> {
-    const userId = await getUserId(req);
+    const userId = await getUserId();
     if (!userId) return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401 });
 
     const { id } = await ctx.params;

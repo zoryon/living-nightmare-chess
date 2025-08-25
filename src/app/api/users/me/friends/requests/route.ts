@@ -1,17 +1,11 @@
 import { NextRequest } from "next/server";
 
 import { prisma } from "@/lib/prisma";
-import { verifyAccessToken } from "@/lib/jwt-edge";
-
-async function getUserId(req: NextRequest): Promise<number | null> {
-    const accessToken = req.cookies.get("access_token")?.value || "";
-    const payload = await verifyAccessToken(accessToken);
-    return payload && typeof payload.userId === "number" ? payload.userId : null;
-}
+import { getUserId } from "@/lib/server";
 
 // GET /api/users/me/friends/requests?direction=incoming|outgoing
 export async function GET(req: NextRequest): Promise<Response> {
-    const userId = await getUserId(req);
+    const userId = await getUserId();
     if (!userId) return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401 });
 
     const { searchParams } = new URL(req.url);
@@ -44,7 +38,7 @@ export async function GET(req: NextRequest): Promise<Response> {
 // POST /api/users/me/friends/requests
 // body: { username: string }
 export async function POST(req: NextRequest): Promise<Response> {
-    const userId = await getUserId(req);
+    const userId = await getUserId();
     if (!userId) return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401 });
 
     const body = await req.json().catch(() => ({}));

@@ -5,8 +5,8 @@ import { verifyAccessToken } from "@/lib/jwt-edge";
 
 // Paths accessible only by NOT logged-in users (public pages)
 const PUBLIC_ONLY_PATHS = [
-    "/login", 
-    "/register", 
+    "/login",
+    "/register",
     "/register/confirm",
     "/api/sessions",
     "/api/users",
@@ -15,8 +15,8 @@ const PUBLIC_ONLY_PATHS = [
 
 // Paths accessible by everyone (optional, e.g. static)
 const OPEN_PATHS = [
-    "/favicon.ico", 
-    "/robots.txt", 
+    "/favicon.ico",
+    "/robots.txt",
     "/landing",
     "/pieces",
     "/api/health",
@@ -28,8 +28,11 @@ export async function middleware(req: NextRequest) {
     const { pathname, search } = req.nextUrl;
     const method = req.method || "GET";
 
+    // Helper: boundary-aware path match ("/a" matches "/a" and "/a/...", not "/ab")
+    const matchesPath = (base: string) => pathname === base || pathname.startsWith(base + "/");
+
     // Allow open paths
-    if (OPEN_PATHS.some(path => pathname.startsWith(path))) {
+    if (OPEN_PATHS.some(path => matchesPath(path))) {
         return NextResponse.next();
     }
 
@@ -38,16 +41,20 @@ export async function middleware(req: NextRequest) {
     const accessPayload: any = accessToken ? await verifyAccessToken(accessToken) : null;
     const isLoggedIn: boolean = !!accessPayload;
 
-    // Case 1: Logged in -> block login/register
-    if (isLoggedIn && PUBLIC_ONLY_PATHS.some(path => pathname.startsWith(path))) {
+    // Helper: exact path match
+    const equalsPath = (p: string) => pathname === p;
+
+    // Case 1: Logged in -> block login/register (exact paths only)
+    if (isLoggedIn && PUBLIC_ONLY_PATHS.some(path => equalsPath(path))) {
         return NextResponse.redirect(new URL("/", req.url));
     }
 
     // Case 2: Not logged in → try a server-side refresh via redirect so the
     // path-scoped refresh cookie can be sent. Only for GET to avoid method issues.
-    if (!isLoggedIn && !PUBLIC_ONLY_PATHS.some(path => pathname.startsWith(path))) {
+    // Case 2: Not logged in → protect everything except explicit public-only exact paths
+    if (!isLoggedIn && !PUBLIC_ONLY_PATHS.some(path => equalsPath(path))) {
         // Allow direct access to the refresh path family (cookie will be present there)
-        if (pathname.startsWith("/api/sessions/current/refresh")) {
+        if (matchesPath("/api/sessions/current/refresh")) {
             return NextResponse.next();
         }
         if (method === "GET") {
@@ -76,7 +83,7 @@ function resWithTokenStatusHeader(expiringSoon = false) {
     return res;
 }
 
-// Apply middleware only to pages and api routes you want to protect
+// Apply middleware only to pages and api routes that need to be protected
 export const config = {
     matcher: [
         /*
