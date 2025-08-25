@@ -39,7 +39,7 @@ export default function LoginPage() {
             };
             if (existingDeviceId) headers["x-device-id"] = String(existingDeviceId);
 
-            const res = await secureFetch("/api/auth/login", {
+            const res = await secureFetch("/api/sessions", {
                 method: "POST",
                 headers,
                 body: JSON.stringify(values)
