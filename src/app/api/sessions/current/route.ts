@@ -4,6 +4,19 @@ import { prisma } from "@/lib/prisma";
 import { clearRefreshTokenCookie } from "@/lib/jwt";
 import { verifyAccessToken } from "@/lib/jwt-edge";
 
+// Get current session (exposes current access token value for WS auth)
+export async function GET() {
+    const token = (await cookies()).get("access_token");
+    if (!token) {
+        return new Response("Not found", { status: 404 });
+    }
+    // Return only the token value, not the full cookie object
+    return new Response(JSON.stringify({ token: token.value }), {
+        status: 200,
+        headers: { "content-type": "application/json" }
+    });
+}
+
 // Destroy current session (logout)
 export async function DELETE() {
     const cookieStore = await cookies();

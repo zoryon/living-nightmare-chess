@@ -47,7 +47,7 @@ export async function getSocket(): Promise<Socket> {
   // Make sure we have a fresh access token cookie
   await ensureFreshToken();
 
-  const res = await fetch("/api/auth/token", { method: "GET", credentials: "include" });
+  const res = await fetch("/api/sessions/current", { method: "GET", credentials: "include" });
   const { token } = (await res.json()) as { token: string };
 
   // Resolve proper ws/wss URL depending on deployment
