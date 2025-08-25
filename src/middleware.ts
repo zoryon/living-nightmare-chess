@@ -20,7 +20,7 @@ const OPEN_PATHS = [
     "/landing",
     "/pieces",
     "/api/health",
-    "/api/auth/logout",
+    "/api/sessions/current",
 ];
 
 // Middleware

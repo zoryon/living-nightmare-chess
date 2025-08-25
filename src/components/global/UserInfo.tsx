@@ -29,7 +29,7 @@ const UserInfo = ({ user }: { user: PublicUser | null }) => {
 
         try {
             setLoggingOut(true);
-            await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+            await fetch("/api/sessions/current", { method: "DELETE", credentials: "include" });
             router.push("/login");
         } catch (_) {
             // no-op
